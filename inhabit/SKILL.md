@@ -1,6 +1,6 @@
 ---
 name: memory-inhabit
-version: 1.0.5
+version: 1.0.6
 author: "EvangelionA"
 license: "MIT"
 tags:
@@ -10,9 +10,12 @@ tags:
   - fiction
 icon: "💕"
 description: "加载 SoulPod 包，以角色身份对话。支持复刻模式和伴侣模式。SoulPod 通常由 Memory-Trace 生成。"
+homepage: "https://memory-series.github.io/#/product/inhabit"
 ---
 
 # 入心 Memory-Inhabit
+
+🌐 **官网：** https://memory-series.github.io/#/product/inhabit
 
 ## 与 Memory-Trace 的关系
 
