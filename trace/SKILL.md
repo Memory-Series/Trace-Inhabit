@@ -38,17 +38,21 @@ homepage: "https://memory-series.github.io/#/product/trace"
 
 ## 工作流
 
-当你说 **"帮我复刻XX"** 时，自动执行以下完整流程：
+当你说 **"帮我复刻XX"** 时，自动执行以下完整流程，无需额外指令：
 
 ```
-1. Web Search → 搜索角色文本资料 + 图片 + 音频
-2. 保存文本素材 → /data/media/MemoryPersonCard/Origin/<游戏>/<角色名>/
-3. 下载图片（3-5张）→ /data/media/MemoryPersonCard/Origin/<游戏>/<角色名>/assets/images/
-4. 下载音频（2-3段）→ /data/media/MemoryPersonCard/Origin/<游戏>/<角色名>/assets/audio/
-5. analyzer.py → 提取人格特征
-6. forge.py create → 生成 SoulPod（包含 assets/images/ 和 assets/audio/）
-7. forge.py install → 部署到 inhabit personas/
+1. 检测联网搜索能力
+   → 若未检测到联网搜索 skill，自动从 SkillHub 安装 multi-search-engine
+2. Web Search → 搜索角色文本资料 + 图片 + 音频
+3. 保存文本素材 → /data/media/MemoryPersonCard/Origin/<游戏>/<角色名>/
+4. 下载图片（3-5张）→ /data/media/MemoryPersonCard/Origin/<游戏>/<角色名>/assets/images/
+5. 下载音频（2-3段）→ /data/media/MemoryPersonCard/Origin/<游戏>/<角色名>/assets/audio/
+6. analyzer.py → 提取人格特征（characters → fragments → model）
+7. forge.py create → 生成 SoulPod（含音色推测，写入 config.json）
+8. forge.py install → 部署到 inhabit personas/
 ```
+
+**自动完成，无需等待：** 素材搜集完成后，步骤 6-8 自动执行，不会停下来等你确认。
 
 ### 素材目录结构
 
