@@ -40,6 +40,89 @@ def sanitize_name(name):
     return safe if safe else "unknown"
 
 
+# MiniMax 音色库（与 tts.py 保持一致）
+MINIMAX_VOICES = {
+    "young_unrestrained": ("Chinese (Mandarin)_Unrestrained_Young_Man", "不羁青年，潇洒冷酷但温柔，适合霸道/腹黑型角色"),
+    "young_gentle": ("Chinese (Mandarin)_Gentleman", "温润男声，磁性柔和，适合温柔体贴型角色"),
+    "young_lyrical": ("Chinese (Mandarin)_Lyrical_Voice", "抒情男声，深沉浪漫，适合忧郁/内敛型角色"),
+    "young_pure": ("Chinese (Mandarin)_Pure-hearted_Boy", "清澈邻家弟弟，阳光清爽，适合阳光开朗型角色"),
+    "young_straightforward": ("Chinese (Mandarin)_Straightforward_Boy", "率真弟弟，认真直接，适合正直/热血型角色"),
+    "middle_reliable": ("Chinese (Mandarin)_Reliable_Executive", "沉稳高管，权威可靠，适合成熟稳重型角色"),
+    "middle_announcer": ("Chinese (Mandarin)_Male_Announcer", "播报男声，磁性权威，适合冷静专业型角色"),
+    "middle_professional": ("Chinese (Mandarin)_Radio_Host", "电台男主播，流畅优雅，适合从容淡定型角色"),
+    "elder_humorous": ("Chinese (Mandarin)_Humorous_Elder", "搞笑大爷，爽朗幽默，适合老年/谐星型角色"),
+}
+
+EDGE_VOICE_MAP = {
+    "young_unrestrained": "yunxi",
+    "young_gentle": "yunxi",
+    "young_lyrical": "yunjian",
+    "young_pure": "yunxia",
+    "young_straightforward": "yunyang",
+    "middle_reliable": "yunyang",
+    "middle_announcer": "yunyang",
+    "middle_professional": "yunjian",
+    "elder_humorous": "xiaobei",
+}
+
+
+def infer_voice_type(personality_keywords, occupation="", relation=""):
+    """
+    根据角色性格关键词、职业、身份推断最适合的音色类型
+    
+    Returns:
+        tuple: (voice_key, voice_id, description, edge_voice)
+    """
+    text = " ".join(personality_keywords).lower() + " " + occupation.lower() + " " + relation.lower()
+    
+    # 冷漠/霸道/强势关键词
+    cold = any(k in text for k in ["霸道", "冷漠", "强势", "冷酷", "腹黑", "高冷", "独断", "偏执", "占有欲", "控制", "专制", "威严"])
+    # 温柔/善良关键词
+    warm = any(k in text for k in ["温柔", "善良", "体贴", "温暖", "柔和", "关怀", "善解", "宠溺", "呵护", "包容"])
+    # 阳光/开朗关键词
+    sunny = any(k in text for k in ["开朗", "阳光", "活泼", "乐观", "热情", "积极", "外向", "明亮", "爽朗"])
+    # 深沉/内敛关键词
+    deep = any(k in text for k in ["深沉", "内敛", "忧郁", "敏感", "细腻", "沉默", "冷静", "克制"])
+    # 幽默/风趣关键词
+    humor = any(k in text for k in ["幽默", "风趣", "诙谐", "搞笑", "逗比", "调皮", "恶作剧"])
+    # 正直/热血关键词
+    righteous = any(k in text for k in ["正直", "热血", "正义", "坚毅", "勇敢", "执念", "不服输"])
+    
+    # 年龄推断
+    student = any(k in text for k in ["学生", "少年", "青年", "新手", "学员"])
+    elder = any(k in text for k in ["爷爷", "老人", "长辈", "退休", "老年"])
+    
+    if elder:
+        return ("elder_humorous", *MINIMAX_VOICES["elder_humorous"], EDGE_VOICE_MAP["elder_humorous"])
+    
+    if student or elder:
+        # 年轻角色
+        if cold or humor:
+            return ("young_unrestrained", *MINIMAX_VOICES["young_unrestrained"], EDGE_VOICE_MAP["young_unrestrained"])
+        elif warm:
+            return ("young_gentle", *MINIMAX_VOICES["young_gentle"], EDGE_VOICE_MAP["young_gentle"])
+        elif sunny or righteous:
+            return ("young_pure", *MINIMAX_VOICES["young_pure"], EDGE_VOICE_MAP["young_pure"])
+        elif deep:
+            return ("young_lyrical", *MINIMAX_VOICES["young_lyrical"], EDGE_VOICE_MAP["young_lyrical"])
+        else:
+            return ("young_unrestrained", *MINIMAX_VOICES["young_unrestrained"], EDGE_VOICE_MAP["young_unrestrained"])
+    else:
+        # 中年/成年角色
+        if cold:
+            return ("young_unrestrained", *MINIMAX_VOICES["young_unrestrained"], EDGE_VOICE_MAP["young_unrestrained"])
+        elif warm:
+            return ("young_gentle", *MINIMAX_VOICES["young_gentle"], EDGE_VOICE_MAP["young_gentle"])
+        elif sunny:
+            return ("young_pure", *MINIMAX_VOICES["young_pure"], EDGE_VOICE_MAP["young_pure"])
+        elif deep:
+            return ("middle_announcer", *MINIMAX_VOICES["middle_announcer"], EDGE_VOICE_MAP["middle_announcer"])
+        elif humor:
+            return ("middle_professional", *MINIMAX_VOICES["middle_professional"], EDGE_VOICE_MAP["middle_professional"])
+        else:
+            return ("middle_reliable", *MINIMAX_VOICES["middle_reliable"], EDGE_VOICE_MAP["middle_reliable"])
+
+
 def create_soulpod(source_path, character_name, output_name=None):
     """
     完整流程：从素材文件生成 SoulPod 包
@@ -135,6 +218,15 @@ def create_soulpod(source_path, character_name, output_name=None):
     with open(pod_dir / "system_prompts.txt", "w", encoding="utf-8") as f:
         f.write(prompts)
 
+    # 音色推测
+    print(f"\n🎵 Step 3.5: 音色推测...")
+    voice_key, voice_id, voice_desc, edge_voice = infer_voice_type(
+        personality["keywords"], 
+        occupation=profile.get("occupation", ""),
+        relation=profile.get("relation", "")
+    )
+    print(f"   推荐音色：{voice_desc}")
+    
     # config.json
     config = {
         "soulpod_version": "0.1.0",
@@ -155,7 +247,11 @@ def create_soulpod(source_path, character_name, output_name=None):
             "max_history": 20,
             "save_transcript": True,
             "transcript_dir": "conversations/"
-        }
+        },
+        "tts_provider": "minimax",
+        "minimax_voice_id": voice_key,
+        "voice_description": voice_desc,
+        "edge_voice": edge_voice
     }
     with open(pod_dir / "config.json", "w", encoding="utf-8") as f:
         json.dump(config, f, ensure_ascii=False, indent=2)

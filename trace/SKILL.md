@@ -1,6 +1,6 @@
 ---
 name: memory-trace
-version: 1.0.6
+version: 1.0.7
 author: "EvangelionA"
 license: "MIT"
 tags:
@@ -82,7 +82,7 @@ SoulPod 包含以下文件：
 |------|------|
 | `profile.json` | 基础信息（名字、source_type、appearance、人格评分等） |
 | `system_prompts.txt` | 说话风格定义 |
-| `config.json` | 运行时配置 |
+| `config.json` | 运行时配置（含 TTS 音色推荐） |
 | `memories/raw_memories.json` | 记忆片段 |
 | `assets/images/` | 角色参考图（用于图生图基准图） |
 | `assets/audio/` | 角色音频（用于声音复刻） |
@@ -102,6 +102,31 @@ SoulPod 包含以下文件：
   }
 }
 ```
+
+### 音色推测功能
+
+生成 SoulPod 时自动根据角色性格关键词 + 职业 + 身份推断最优音色，写入 `config.json`：
+
+```json
+{
+  "tts_provider": "minimax",
+  "minimax_voice_id": "young_unrestrained",
+  "voice_description": "不羁青年，潇洒冷酷但温柔，适合霸道/腹黑型角色",
+  "edge_voice": "yunxi"
+}
+```
+
+**音色分类库：**
+
+| 音色类型 | MiniMax 音色 | 适合角色 |
+|---------|-------------|---------|
+| 不羁青年 | Chinese (Mandarin)_Unrestrained_Young_Man | 霸道/腹黑/高冷 |
+| 温润男声 | Chinese (Mandarin)_Gentleman | 温柔/体贴/善良 |
+| 抒情男声 | Chinese (Mandarin)_Lyrical_Voice | 忧郁/内敛/深沉 |
+| 清澈弟弟 | Chinese (Mandarin)_Pure-hearted_Boy | 阳光/开朗/活泼 |
+| 沉稳高管 | Chinese (Mandarin)_Reliable_Executive | 成熟/稳重/权威 |
+| 播报男声 | Chinese (Mandarin)_Male_Announcer | 冷静/专业/低沉 |
+| 搞笑大爷 | Chinese (Mandarin)_Humorous_Elder | 老年/幽默/谐星 |
 
 ## 依赖
 

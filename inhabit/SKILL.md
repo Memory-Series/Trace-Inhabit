@@ -1,6 +1,6 @@
 ---
 name: memory-inhabit
-version: 1.0.6
+version: 1.0.7
 author: "EvangelionA"
 license: "MIT"
 tags:
@@ -126,6 +126,38 @@ SoulPod 调整时，需同步更新以下所有位置的文件（system_prompts.
 - `~/.openclaw/workspace-coding/skills/Memory-Inhabit/personas/<角色名>/` — 主使用
 - `~/.openclaw/workspace-coding/skills/Memory-Trace/output/<角色名>/` — trace 输出
 - `~/.openclaw/workspace-roleplay/skills/memory-inhabit/personas/<角色名>/` — roleplay 副本
+
+## 语音功能（TTS）
+
+### 触发方式
+
+| 类型 | 触发条件 | 行为 |
+|------|---------|------|
+| **明确触发** | 你说"发段语音"、"想听你声音"、"说给我听"、"声音"等 | 立即生成并发送角色语音 |
+| **随机惊喜** | 伴侣模式定时推送时，10-20%概率自动带语音 | 偶尔无声预告，主动制造惊喜 |
+| **对话播报** | 你在聊天中途说"发个语音" | 生成角色回复的语音版本 |
+
+### 音色匹配
+
+- 自动读取 `profile.json` 推断角色年龄 + 性格
+- 匹配最接近的音色（MiniMax 优先，支持双轨切换）
+- 支持 `config.json` 中 `tts_provider: "edge" | "minimax"` 强制指定
+
+### 语音命令
+
+```bash
+# 预览音色匹配结果
+python3 scripts/tts.py --preview
+
+# 列出所有可用音色
+python3 scripts/tts.py --list-voices
+
+# 指定文本生成语音（默认 minimax，不羁青年）
+python3 scripts/tts.py "我才没有想你，我在想别的事情" -o /tmp/voice.mp3
+
+# 指定使用 edge-tts
+python3 scripts/tts.py "我才没有想你，我在想别的事情" -o /tmp/voice.mp3 --provider edge
+```
 
 ## 待接入功能
 
