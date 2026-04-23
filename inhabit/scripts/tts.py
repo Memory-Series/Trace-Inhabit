@@ -28,58 +28,41 @@ except ImportError:
 # MiniMax TTS 配置
 MINIMAX_API_URL = "https://api.minimaxi.com/v1/t2a_v2"
 
-# MiniMax 中文男声音色库（按性格+年龄分类）
-MINIMAX_VOICES = {
-    # 年轻-阳光/不羁
-    "young_unrestrained": "Chinese (Mandarin)_Unrestrained_Young_Man",
-    # 年轻-温润/磁性
-    "young_gentle": "Chinese (Mandarin)_Gentleman",
-    # 年轻-抒情/温柔
-    "young_lyrical": "Chinese (Mandarin)_Lyrical_Voice",
-    # 年轻-清爽/清澈
-    "young_pure": "Chinese (Mandarin)_Pure-hearted_Boy",
-    # 年轻-率真
-    "young_straightforward": "Chinese (Mandarin)_Straightforward_Boy",
-    # 中年-沉稳/高管
-    "middle_reliable": "Chinese (Mandarin)_Reliable_Executive",
-    # 中年-播报/磁性
-    "middle_announcer": "Chinese (Mandarin)_Male_Announcer",
-    # 中年-商务/专业
-    "middle_professional": "Chinese (Mandarin)_Radio_Host",
-    # 老年-幽默
-    "elder_humorous": "Chinese (Mandarin)_Humorous_Elder",
-    # 通用 fallback
-    "default_male": "male-qn-qingse",
-}
+# ── 音色目录（从 voice_catalog.json 加载） ──────────────────────────────────
+CATALOG_PATH = Path(__file__).parent / "voice_catalog.json"
+_catalog = json.loads(CATALOG_PATH.read_text(encoding="utf-8")) if CATALOG_PATH.exists() else {}
 
-# MiniMax 默认音色
-DEFAULT_MINIMAX_VOICE = "young_unrestrained"
+# 构建 MiniMax voice_map: voice_key → voice_id
+MINIMAX_VOICES = {}
+if "minimax" in _catalog:
+    for lang, lang_data in _catalog["minimax"].items():
+        for gender_key in ("male", "female"):
+            if gender_key in lang_data:
+                for vk, vinfo in lang_data[gender_key].items():
+                    MINIMAX_VOICES[vk] = vinfo.get("id", vk)
 
-# Edge-TTS 中文语音
+# Edge-TTS 中文音色 ID
 EDGE_VOICES = {
-    "xiaoxiao": "zh-CN-XiaoxiaoNeural",   # 温暖女声
-    "xiaoyi": "zh-CN-XiaoyiNeural",       # 活泼女声
-    "yunxi": "zh-CN-YunxiNeural",         # 阳光少年男声
-    "yunjian": "zh-CN-YunjianNeural",     # 热情男声
-    "yunyang": "zh-CN-YunyangNeural",     # 专业稳重男声
-    "yunxia": "zh-CN-YunxiaNeural",       # 可爱男声
-    "xiaobei": "zh-CN-liaoning-XiaobeiNeural",  # 东北话
-    "xiaoni": "zh-CN-shaanxi-XiaoniNeural",     # 陕西话
+    "xiaoxiao": "zh-CN-XiaoxiaoNeural",
+    "xiaoyi":   "zh-CN-XiaoyiNeural",
+    "yunxi":    "zh-CN-YunxiNeural",
+    "yunjian":  "zh-CN-YunjianNeural",
+    "yunyang":  "zh-CN-YunyangNeural",
+    "yunxia":   "zh-CN-YunxiaNeural",
+    "xiaobei":  "zh-CN-liaoning-XiaobeiNeural",
+    "xiaoni":   "zh-CN-shaanxi-XiaoniNeural",
 }
 
-# Edge-TTS 性格映射
-EDGE_VOICE_MOOD = {
-    "young_unrestrained": "yunxi",     # 阳光不羁
-    "young_gentle": "yunxi",           # 温柔
-    "young_lyrical": "yunjian",        # 抒情
-    "young_pure": "yunxia",            # 清澈可爱
-    "young_straightforward": "yunyang", # 率真
-    "middle_reliable": "yunyang",      # 沉稳
-    "middle_announcer": "yunyang",      # 播音
-    "middle_professional": "yunjian",   # 专业
-    "elder_humorous": "xiaobei",        # 幽默老年
-}
+# Edge voice_key → edge voice_id（从 catalog 的 edge 节提取 key）
+EDGE_VOICE_MOOD = {}
+if "edge" in _catalog:
+    for lang, lang_data in _catalog["edge"].items():
+        for gender_key in ("male", "female", "special"):
+            if gender_key in lang_data:
+                for vk in lang_data[gender_key].keys():
+                    EDGE_VOICE_MOOD[vk] = vk  # key 即 edge voice key
 
+DEFAULT_MINIMAX_VOICE = "male-qn-badao"
 DEFAULT_EDGE_VOICE = "yunxi"
 
 
