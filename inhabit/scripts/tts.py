@@ -73,7 +73,8 @@ def load_profile(persona_path=None):
         candidates = [
             Path(__file__).parent.parent / "personas",
             Path.home() / ".openclaw" / "workspace" / "skills" / "memory-inhabit" / "personas",
-            Path.home() / ".openclaw" / "workspace-coding" / "skills" / "Memory-Inhabit" / "personas",
+            Path.home() / ".openclaw" / "workspace-coding" / "skills" / "memory-inhabit" / "personas",
+            Path.home() / ".openclaw" / "workspace-coding" / "memory-series" / "inhabit" / "personas",
             Path.home() / ".openclaw" / "workspace-roleplay" / "skills" / "memory-inhabit" / "personas",
         ]
         for cand in candidates:
@@ -97,7 +98,8 @@ def load_config(persona_path=None):
         candidates = [
             Path(__file__).parent.parent / "personas",
             Path.home() / ".openclaw" / "workspace" / "skills" / "memory-inhabit" / "personas",
-            Path.home() / ".openclaw" / "workspace-coding" / "skills" / "Memory-Inhabit" / "personas",
+            Path.home() / ".openclaw" / "workspace-coding" / "skills" / "memory-inhabit" / "personas",
+            Path.home() / ".openclaw" / "workspace-coding" / "memory-series" / "inhabit" / "personas",
             Path.home() / ".openclaw" / "workspace-roleplay" / "skills" / "memory-inhabit" / "personas",
         ]
         for cand in candidates:
@@ -110,65 +112,97 @@ def load_config(persona_path=None):
     return {}
 
 
-def infer_voice_mood(profile):
-    """根据 profile.json 推断音色类型"""
+def infer_voice(profile):
+    """
+    根据 profile.json 推断最优音色，返回 (minimax_key, edge_key)。
+    按 gender → age_group → mood 三维查表，返回真实 catalog key。
+    """
     keywords = profile.get("personality", {}).get("keywords", [])
     occupation = profile.get("occupation", "")
+    gender = profile.get("gender", "male")
     age_estimate = infer_age(profile)
-    
-    # 合并关键词用于分析
-    text = " ".join(keywords).lower()
-    text += " " + occupation.lower()
-    
-    # 冷漠/霸道/强势 → 冷峻型
-    cold_keywords = ["霸道", "冷漠", "强势", "冷酷", "严肃", "冷淡", "高冷", "独断"]
-    # 温柔/善良/体贴 → 温柔型
-    warm_keywords = ["温柔", "善良", "体贴", "温暖", "柔和", "关怀", "善解"]
-    # 阳光/开朗/活泼 → 阳光型
-    sunny_keywords = ["开朗", "阳光", "活泼", "乐观", "热情", "积极", "外向"]
-    # 深沉/内敛/忧郁 → 抒情型
-    deep_keywords = ["深沉", "内敛", "忧郁", "敏感", "细腻", "思考"]
-    # 幽默/风趣 → 幽默型
-    humor_keywords = ["幽默", "风趣", "诙谐", "搞笑"]
-    
-    mood_counts = {
-        "cold": sum(1 for k in cold_keywords if k in text),
-        "warm": sum(1 for k in warm_keywords if k in text),
-        "sunny": sum(1 for k in sunny_keywords if k in text),
-        "deep": sum(1 for k in deep_keywords if k in text),
-        "humor": sum(1 for k in humor_keywords if k in text),
-    }
-    
+
+    # 合并关键词
+    text = " ".join(keywords).lower() + " " + occupation.lower()
+
     # 主导情绪
-    dominant = max(mood_counts, key=mood_counts.get)
-    
-    # 年龄 + 情绪 → 音色
-    if age_estimate >= 50:
-        return "elder_humorous"
-    elif age_estimate >= 35:
-        # 中年
-        if dominant == "cold":
-            return "middle_reliable"
-        elif dominant == "warm":
-            return "middle_announcer"
-        elif dominant == "sunny":
-            return "middle_professional"
-        else:
-            return "middle_reliable"
-    else:
-        # 青年
-        if dominant == "cold":
-            return "young_unrestrained"
-        elif dominant == "warm":
-            return "young_gentle"
-        elif dominant == "sunny":
-            return "young_unrestrained"
-        elif dominant == "deep":
-            return "young_lyrical"
-        elif dominant == "humor":
-            return "young_pure"
-        else:
-            return "young_unrestrained"
+    cold   = any(k in text for k in ["霸道", "冷漠", "强势", "冷酷", "严肃", "冷淡", "高冷", "独断", "腹黑", "偏执"])
+    warm   = any(k in text for k in ["温柔", "善良", "体贴", "温暖", "柔和", "关怀", "善解", "宠溺"])
+    sunny  = any(k in text for k in ["开朗", "阳光", "活泼", "乐观", "热情", "积极", "外向", "爽朗"])
+    deep   = any(k in text for k in ["深沉", "内敛", "忧郁", "敏感", "细腻", "沉默", "克制"])
+    humor  = any(k in text for k in ["幽默", "风趣", "诙谐", "搞笑", "逗比"])
+
+    if cold:    mood = "cold"
+    elif warm:  mood = "warm"
+    elif sunny: mood = "sunny"
+    elif deep:  mood = "deep"
+    elif humor: mood = "humor"
+    else:       mood = "default"
+
+    is_female = gender.lower() in ("female", "f", "女")
+    age_group = "elder" if age_estimate >= 50 else ("young" if age_estimate <= 25 else "middle")
+
+    # MiniMax 音色表：按 (is_female, age_group, mood) → catalog key
+    _mm = {
+        # 男-青年
+        (False, "young", "cold"):   "male-qn-badao",
+        (False, "young", "warm"):   "Chinese (Mandarin)_Gentleman",
+        (False, "young", "sunny"):  "Chinese (Mandarin)_Pure-hearted_Boy",
+        (False, "young", "deep"):   "Chinese (Mandarin)_Lyrical_Voice",
+        (False, "young", "humor"):  "Chinese (Mandarin)_Straightforward_Boy",
+        (False, "young", "default"): "Chinese (Mandarin)_Gentleman",
+        # 男-中年
+        (False, "middle", "cold"):  "Chinese (Mandarin)_Male_Announcer",
+        (False, "middle", "warm"):   "Chinese (Mandarin)_Gentleman",
+        (False, "middle", "sunny"):  "Chinese (Mandarin)_Reliable_Executive",
+        (False, "middle", "deep"):   "Chinese (Mandarin)_Male_Announcer",
+        (False, "middle", "humor"):  "Chinese (Mandarin)_Radio_Host",
+        (False, "middle", "default"): "Chinese (Mandarin)_Reliable_Executive",
+        # 男-老年
+        (False, "elder", "default"): "Chinese (Mandarin)_Humorous_Elder",
+        (False, "elder", "humor"):   "Chinese (Mandarin)_Humorous_Elder",
+        # 女-青年
+        (True, "young", "cold"):    "female-yujie",
+        (True, "young", "warm"):    "female-tianmei",
+        (True, "young", "sunny"):   "female-shaonv",
+        (True, "young", "deep"):    "Chinese (Mandarin)_Warm_Girl",
+        (True, "young", "humor"):   "Chinese (Mandarin)_Crisp_Girl",
+        (True, "young", "default"):  "Chinese (Mandarin)_Warm_Girl",
+        # 女-中年
+        (True, "middle", "cold"):   "Chinese (Mandarin)_Mature_Woman",
+        (True, "middle", "warm"):   "Chinese (Mandarin)_Sweet_Lady",
+        (True, "middle", "sunny"):  "female-chengshu",
+        (True, "middle", "deep"):   "Chinese (Mandarin)_Wise_Women",
+        (True, "middle", "humor"):  "Chinese (Mandarin)_Warm_Bestie",
+        (True, "middle", "default"): "Chinese (Mandarin)_Mature_Woman",
+        # 女-老年
+        (True, "elder", "default"):  "Chinese (Mandarin)_Kind-hearted_Elder",
+        (True, "elder", "humor"):    "Chinese (Mandarin)_Kind-hearted_Elder",
+    }
+
+    # Edge 音色表
+    _edge = {
+        # Edge 的 mood 映射较粗，按性别+年龄选代表性音色
+        (False, "young"):  "yunxi",   # 阳光少年
+        (False, "middle"): "yunjian", # 热情男声
+        (False, "elder"):  "yunyang", # 专业稳重
+        (True, "young"):   "xiaoyi",  # 活泼女声
+        (True, "middle"):  "xiaoxiao", # 温暖女声
+        (True, "elder"):   "xiaoxiao", # 温暖女声（偏成熟）
+    }
+
+    minimax_key = _mm.get((is_female, age_group, mood),
+                           _mm.get((is_female, age_group, "default"),
+                                   _mm.get((False, "young", "default"))))
+    edge_key = _edge.get((is_female, age_group), _edge.get((False, "young")))
+
+    return minimax_key, edge_key
+
+
+def infer_voice_mood(profile):
+    """兼容旧接口，推荐使用 infer_voice()"""
+    minimax_key, _ = infer_voice(profile)
+    return minimax_key
 
 
 def infer_age(profile):
@@ -339,12 +373,13 @@ def main():
     if args.preview:
         mood = infer_voice_mood(profile)
         age = infer_age(profile)
+        mm_key, edge_key = infer_voice(profile)
+        gender_label = "女" if profile.get("gender") == "female" else "男"
         print(f"👤 角色: {profile.get('name', '未知')}")
+        print(f"🚻 性别: {gender_label}（自动推断）")
         print(f"📅 推断年龄阶段: {age}")
-        print(f"🎭 推断音色类型: {mood}")
-        print(f"🔊 推荐 MiniMax 音色: {MINIMAX_VOICES.get(mood, DEFAULT_MINIMAX_VOICE)}")
-        edge_key = EDGE_VOICE_MOOD.get(mood, DEFAULT_EDGE_VOICE)
-        print(f"🔊 推荐 Edge-TTS 音色: {EDGE_VOICES.get(edge_key, EDGE_VOICES[DEFAULT_EDGE_VOICE])}")
+        print(f"🔊 推荐 MiniMax 音色: {mm_key} → {MINIMAX_VOICES.get(mm_key, mm_key)}")
+        print(f"🔊 推荐 Edge-TTS 音色: {edge_key} → {EDGE_VOICES.get(edge_key, edge_key)}")
         return
     
     if not args.text:
@@ -357,9 +392,10 @@ def main():
     # 确定音色 key
     if args.voice_key:
         voice_key = args.voice_key
+        edge_key = args.voice_key  # 手动指定时两者相同（会 lookup 失败但 fallback）
     else:
-        voice_key = infer_voice_mood(profile)
-    
+        voice_key, edge_key = infer_voice(profile)
+
     try:
         if provider == "minimax":
             emotion = {"happy": "happy", "sad": "sad", "calm": "calm", "angry": "angry"}.get(args.emotion, "calm")
@@ -372,7 +408,6 @@ def main():
                 generate_minimax_tts(args.text, args.output, voice_key)
                 print(f"✅ MiniMax TTS（备用）已生成: {args.output}")
                 return
-            edge_key = EDGE_VOICE_MOOD.get(voice_key, DEFAULT_EDGE_VOICE)
             asyncio.run(generate_edge_tts(args.text, args.output, edge_key, args.rate, args.volume))
             print(f"✅ Edge-TTS 已生成: {args.output}")
             print(f"   音色: {EDGE_VOICES.get(edge_key, edge_key)}")

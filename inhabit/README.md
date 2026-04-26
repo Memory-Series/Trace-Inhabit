@@ -1,6 +1,6 @@
 ---
 name: memory-inhabit
-version: 1.0.8
+version: 1.0.9
 author: "EvangelionA"
 license: "MIT"
 tags:
@@ -16,6 +16,8 @@ homepage: "https://memory-series.github.io/#/product/inhabit"
 # 入心 Memory-Inhabit
 
 🌐 **官网：** https://memory-series.github.io/#/product/inhabit
+
+🌐 **项目地址：** https://github.com/Memory-Series/Trace-Inhabit
 
 ## 与 Memory-Trace 的关系
 
@@ -69,6 +71,7 @@ SoulPod 包含以下文件：
   "name": "角色名",
   "source_type": "virtual | real",
   "source": "作品名",
+  "gender": "male | female",
   "appearance": {
     "hair": "发型发色",
     "face": "五官特征",
@@ -82,6 +85,7 @@ SoulPod 包含以下文件：
 |------|------|
 | `source_type` | `"virtual"`=虚拟角色（动漫/游戏），`"real"`=现实人物 |
 | `source` | 角色来自的作品名 |
+| `gender` | 角色性别，`"male"` 或 `"female"`，由 Memory-Trace 从素材自动推断，用于 TTS 音色匹配 |
 | `appearance` | 用于文生图/图生图时的角色外观描述 |
 
 ## 文生图功能
@@ -122,15 +126,6 @@ python3 scripts/imggen.py generate <角色> <场景>  # 生成图片（需 MINIM
 - `pip install edge-tts` — 语音合成
 - `MINIMAX_API_KEY` 环境变量 — 图片生成（MiniMax API Key）
 
-## 同步规则
-
-SoulPod 调整时，需同步更新以下所有位置的文件（system_prompts.txt、profile.json）：
-
-- `/data/media/MemoryPersonCard/SoulPod/<角色名>/` — 备份存储
-- `~/.openclaw/workspace-coding/skills/Memory-Inhabit/personas/<角色名>/` — 主使用
-- `~/.openclaw/workspace-coding/skills/Memory-Trace/output/<角色名>/` — trace 输出
-- `~/.openclaw/workspace-roleplay/skills/memory-inhabit/personas/<角色名>/` — roleplay 副本
-
 ## 语音功能（TTS）
 
 ### 触发方式
@@ -157,15 +152,8 @@ python3 scripts/tts.py --preview
 python3 scripts/tts.py --list-voices
 
 # 指定文本生成语音（默认 minimax，不羁青年）
-python3 scripts/tts.py "我才没有想你，我在想别的事情" -o /tmp/voice.mp3
+python3 scripts/tts.py "文本信息" -o /tmp/voice.mp3
 
 # 指定使用 edge-tts
-python3 scripts/tts.py "我才没有想你，我在想别的事情" -o /tmp/voice.mp3 --provider edge
+python3 scripts/tts.py "文本信息" -o /tmp/voice.mp3 --provider edge
 ```
-
-## 待接入功能
-
-| 功能 | 状态 |
-|------|------|
-| 图生图（基准图） | 等用户提供基准图在线 URL |
-| 声音复刻 | 等 MiniMax 音频上传接口确认 |

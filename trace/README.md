@@ -1,6 +1,6 @@
 ---
 name: memory-trace
-version: 1.0.8
+version: 1.0.9
 author: "EvangelionA"
 license: "MIT"
 tags:
@@ -15,6 +15,8 @@ homepage: "https://memory-series.github.io/#/product/trace"
 # 寻迹 Memory-Trace
 
 🌐 **官网：** https://memory-series.github.io/#/product/trace
+
+🌐 **项目地址：** https://github.com/Memory-Series/Trace-Inhabit
 
 ## 与 Memory-Inhabit 的关系
 
@@ -48,9 +50,9 @@ homepage: "https://memory-series.github.io/#/product/trace"
 1. 检测联网搜索能力
    → 若未检测到联网搜索 skill，自动从 SkillHub 安装 multi-search-engine
 2. Web Search → 搜索角色文本资料 + 图片 + 音频
-3. 保存文本素材 → /data/media/MemoryPersonCard/Origin/<游戏>/<角色名>/
-4. 下载图片（3-5张）→ /data/media/MemoryPersonCard/Origin/<游戏>/<角色名>/assets/images/
-5. 下载音频（2-3段）→ /data/media/MemoryPersonCard/Origin/<游戏>/<角色名>/assets/audio/
+3. 保存文本素材 → origin/<游戏>/<角色名>/
+4. 下载图片（3-5张）→ origin/<游戏>/<角色名>/assets/images/
+5. 下载音频（2-3段）→ origin/<游戏>/<角色名>/assets/audio/
 6. analyzer.py → 提取人格特征（characters → fragments → model）
 7. forge.py create → 生成 SoulPod（含音色推测，写入 config.json）
 8. forge.py install → 部署到 inhabit personas/
@@ -61,8 +63,8 @@ homepage: "https://memory-series.github.io/#/product/trace"
 ### 素材目录结构
 
 ```
-/data/media/MemoryPersonCard/
-├── Origin/                          # 源素材备份
+memory-series/trace/
+├── origin/                          # 源素材存档（随 repo 分发）
 │   └── <游戏>/
 │       └── <角色名>/
 │           ├── 01_基本信息.md
@@ -70,14 +72,14 @@ homepage: "https://memory-series.github.io/#/product/trace"
 │           └── assets/
 │               ├── images/          # 角色参考图（图生图基准图）
 │               └── audio/            # 角色音频（声音复刻）
-└── SoulPod/                         # SoulPod 输出
+└── output/                          # SoulPod 输出
     └── <角色名>/
         ├── profile.json
         ├── system_prompts.txt
         ├── config.json
         ├── memories/
         │   └── raw_memories.json
-        └── assets/                   # 与 Origin 中的 assets 同步
+        └── assets/                   # 与 origin 中的 assets 同步
             ├── images/
             └── audio/
 ```
@@ -103,6 +105,7 @@ SoulPod 包含以下文件：
   "source_type": "virtual | real",
   "source": "作品名",
   "appearance": {
+    "gender": "male | female",
     "hair": "发型发色",
     "face": "五官特征",
     "body": "体型",
@@ -124,18 +127,6 @@ SoulPod 包含以下文件：
 }
 ```
 
-**音色分类库：**
-
-| 音色类型 | MiniMax 音色 | 适合角色 |
-|---------|-------------|---------|
-| 不羁青年 | Chinese (Mandarin)_Unrestrained_Young_Man | 霸道/腹黑/高冷 |
-| 温润男声 | Chinese (Mandarin)_Gentleman | 温柔/体贴/善良 |
-| 抒情男声 | Chinese (Mandarin)_Lyrical_Voice | 忧郁/内敛/深沉 |
-| 清澈弟弟 | Chinese (Mandarin)_Pure-hearted_Boy | 阳光/开朗/活泼 |
-| 沉稳高管 | Chinese (Mandarin)_Reliable_Executive | 成熟/稳重/权威 |
-| 播报男声 | Chinese (Mandarin)_Male_Announcer | 冷静/专业/低沉 |
-| 搞笑大爷 | Chinese (Mandarin)_Humorous_Elder | 老年/幽默/谐星 |
-
 ## 依赖
 
 `pip install pdfplumber`
@@ -145,11 +136,4 @@ SoulPod 包含以下文件：
 - "帮我复刻XXX人格" — 完整流程（搜索 + 下载 + 生成 + 部署）
 - 发素材文件给 AI 助手 — 手动启动流程
 
-## 同步规则
 
-SoulPod 调整时，需同步更新以下所有位置的文件（system_prompts.txt、profile.json）：
-
-- `/data/media/MemoryPersonCard/SoulPod/<角色名>/` — 备份存储
-- `~/.openclaw/workspace-coding/skills/Memory-Inhabit/personas/<角色名>/` — 主使用
-- `~/.openclaw/workspace-coding/skills/Memory-Trace/output/<角色名>/` — trace 输出
-- `~/.openclaw/workspace-roleplay/skills/memory-inhabit/personas/<角色名>/` — roleplay 副本

@@ -250,7 +250,7 @@ def create_soulpod(source_path, character_name, output_name=None):
     profile = {
         "name": character_name,
         "alias": [character_name],
-        "gender": "male",  # 可选值: male, female
+        "gender": personality.get("gender", "male"),  # 从素材自动推断
         "birth_year": None,
         "death_year": None,
         "relation": "小说/剧本角色",
