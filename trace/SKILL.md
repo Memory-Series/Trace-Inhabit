@@ -1,6 +1,6 @@
 ---
 name: memory-trace
-version: 1.0.9
+version: 1.0.10
 author: "EvangelionA"
 license: "MIT"
 tags:
@@ -8,7 +8,7 @@ tags:
   - creative
   - fiction
 icon: "🧬"
-description: "从小说、剧本、动漫素材中提取角色人格，生成 SoulPod 包。下游配合 Memory-Inhabit 加载对话。"
+description: "Extract character personality from novels/scripts/anime, generate SoulPod packages for Memory-Inhabit dialogue. | 从小说、剧本、动漫素材中提取角色人格，生成 SoulPod 包。下游配合 Memory-Inhabit 加载对话。"
 homepage: "https://memory-series.github.io/#/product/trace"
 ---
 
