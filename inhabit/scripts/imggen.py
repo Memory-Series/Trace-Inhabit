@@ -7,7 +7,7 @@ Memory-Inhabit Image Generator — 文生图模块
 - 角色自拍（文生图版，等基准图做好后接入图生图）
 
 用法：
-  python3 imggen.py generate <persona> <scene_description> [--style virtual|real]
+  python3 imggen.py generate <persona> <scene_description> [--style virtual|real] [--provider minimax]
   python3 imggen.py prompt <persona> <scene_description>
   python3 imggen.py test <persona>
 """
@@ -16,6 +16,8 @@ import json
 import os
 import sys
 import tempfile
+import mimetypes
+import base64
 import urllib.request
 import urllib.error
 from pathlib import Path
@@ -27,6 +29,8 @@ EXTERNAL_PERSONAS_DIR = Path.home() / ".openclaw" / "personas"
 # MiniMax API 配置
 MINIMAX_API_URL = "https://api.minimaxi.com/v1/image_generation"
 MINIMAX_API_KEY = os.environ.get("MINIMAX_API_KEY", "")
+DEFAULT_PROVIDER = "minimax"
+ENV_PROVIDER_KEY = "IMG_PROVIDER"
 
 # 风格层模板（已含禁止项）
 STYLE_TEMPLATES = {
@@ -59,6 +63,53 @@ def load_profile(persona_name):
         raise FileNotFoundError(f"profile.json not found for '{persona_name}'")
     with open(profile_path, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def resolve_reference_image(persona_name):
+    """
+    从人格包中解析角色参考图（用于图生图）
+
+    优先级：
+    1) profile.json["assets"]["images"][0]
+    2) personas/<name>/assets/images 下第一张图片
+    """
+    persona_dir = resolve_persona_dir(persona_name)
+    if not persona_dir:
+        return None
+
+    profile = load_profile(persona_name)
+    assets = profile.get("assets", {})
+    images = assets.get("images", [])
+    if isinstance(images, list) and images:
+        first = images[0]
+        if isinstance(first, str):
+            # 支持 URL 或相对路径
+            if first.startswith("http://") or first.startswith("https://"):
+                return first
+            candidate = persona_dir / first
+            if candidate.exists():
+                return str(candidate)
+
+    images_dir = persona_dir / "assets" / "images"
+    if not images_dir.exists():
+        return None
+
+    exts = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
+    candidates = sorted([p for p in images_dir.iterdir() if p.is_file() and p.suffix.lower() in exts])
+    if candidates:
+        return str(candidates[0])
+
+    return None
+
+
+def to_data_uri(image_path):
+    """将本地图片转为 data URI，供 MiniMax subject_reference.image_file 使用"""
+    mime, _ = mimetypes.guess_type(image_path)
+    if not mime:
+        mime = "image/jpeg"
+    with open(image_path, "rb") as f:
+        encoded = base64.b64encode(f.read()).decode("ascii")
+    return f"data:{mime};base64,{encoded}"
 
 
 def infer_source_type(profile):
@@ -178,7 +229,18 @@ def detect_include_appearance(scene_description):
     return False
 
 
-def generate_image(prompt, model="image-01", aspect_ratio="16:9"):
+def get_effective_provider(provider_override=None):
+    """解析生图后端：命令行参数 > 环境变量 > 默认值"""
+    provider = (provider_override or os.environ.get(ENV_PROVIDER_KEY, DEFAULT_PROVIDER)).strip().lower()
+    return provider or DEFAULT_PROVIDER
+
+
+def get_supported_providers():
+    """返回当前已注册的生图后端"""
+    return {"minimax"}
+
+
+def generate_image_minimax(prompt, model="image-01", aspect_ratio="16:9", subject_reference=None):
     """
     调用 MiniMax 图文生成 API
 
@@ -194,6 +256,8 @@ def generate_image(prompt, model="image-01", aspect_ratio="16:9"):
         "response_format": "url",
         "n": 1
     }
+    if subject_reference:
+        payload["subject_reference"] = subject_reference
 
     data = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(
@@ -231,6 +295,25 @@ def generate_image(prompt, model="image-01", aspect_ratio="16:9"):
     return image_url, revised_prompt
 
 
+def generate_image_with_provider(provider, prompt, model="image-01", aspect_ratio="16:9", subject_reference=None):
+    """
+    统一生图入口，按 provider 分发
+
+    目前支持：
+    - minimax
+    """
+    if provider == "minimax":
+        return generate_image_minimax(
+            prompt,
+            model=model,
+            aspect_ratio=aspect_ratio,
+            subject_reference=subject_reference
+        )
+
+    supported = ", ".join(sorted(get_supported_providers()))
+    raise ValueError(f"Unsupported provider '{provider}'. Supported providers: {supported}")
+
+
 def download_image(url, save_dir=None):
     """
     下载图片到临时目录
@@ -263,7 +346,7 @@ def cleanup_image(path):
         pass
 
 
-def generate_and_save(persona_name, scene_description, aspect_ratio="16:9"):
+def generate_and_save(persona_name, scene_description, aspect_ratio="16:9", reference_image=None, provider=None):
     """
     完整流程：构建提示词 → 生成 → 下载 → 返回本地路径
     """
@@ -277,15 +360,34 @@ def generate_and_save(persona_name, scene_description, aspect_ratio="16:9"):
     include_app = detect_include_appearance(scene_description)
     prompt = build_prompt(profile, scene_description, source_type, include_appearance=include_app)
 
+    # 3.5 图生图主体参考（可选）
+    subject_reference = None
+    ref = reference_image
+    if ref is None and include_app:
+        ref = resolve_reference_image(persona_name)
+    if ref:
+        ref_value = ref
+        if not (ref.startswith("http://") or ref.startswith("https://") or ref.startswith("data:")):
+            ref_value = to_data_uri(ref)
+        subject_reference = [{"type": "character", "image_file": ref_value}]
+
     # 4. 生成
-    image_url, revised_prompt = generate_image(prompt, aspect_ratio=aspect_ratio)
+    effective_provider = get_effective_provider(provider)
+    image_url, revised_prompt = generate_image_with_provider(
+        effective_provider,
+        prompt,
+        aspect_ratio=aspect_ratio,
+        subject_reference=subject_reference
+    )
 
     # 5. 下载
     local_path = download_image(image_url)
 
     return {
         "persona": persona_name,
+        "provider": effective_provider,
         "source_type": source_type,
+        "reference_image": ref if ref else "",
         "original_prompt": prompt,
         "revised_prompt": revised_prompt,
         "image_url": image_url,
@@ -293,7 +395,7 @@ def generate_and_save(persona_name, scene_description, aspect_ratio="16:9"):
     }
 
 
-def cmd_generate(persona, scene, style_override=None):
+def cmd_generate(persona, scene, style_override=None, reference_image=None, provider=None):
     """generate 命令"""
     if not MINIMAX_API_KEY:
         print("Error: MINIMAX_API_KEY not set", file=sys.stderr)
@@ -305,12 +407,32 @@ def cmd_generate(persona, scene, style_override=None):
     include_app = detect_include_appearance(scene)
     prompt = build_prompt(profile, scene, source_type, include_appearance=include_app)
 
+    subject_reference = None
+    ref = reference_image
+    if ref is None and include_app:
+        ref = resolve_reference_image(persona)
+    if ref:
+        ref_value = ref
+        if not (ref.startswith("http://") or ref.startswith("https://") or ref.startswith("data:")):
+            ref_value = to_data_uri(ref)
+        subject_reference = [{"type": "character", "image_file": ref_value}]
+
+    effective_provider = get_effective_provider(provider)
+
     print(f"[{persona}] generating image...")
+    print(f"provider: {effective_provider}")
     print(f"source_type: {source_type}")
     print(f"include_appearance: {include_app}")
+    print(f"subject_reference: {'enabled' if subject_reference else 'disabled'}")
+    if ref:
+        print(f"reference_image: {ref}")
     print(f"prompt: {prompt}")
 
-    image_url, revised_prompt = generate_image(prompt)
+    image_url, revised_prompt = generate_image_with_provider(
+        effective_provider,
+        prompt,
+        subject_reference=subject_reference
+    )
     print(f"image_url: {image_url}")
 
     local_path = download_image(image_url)
@@ -357,10 +479,22 @@ if __name__ == "__main__":
         persona = sys.argv[2]
         scene = sys.argv[3]
         style_override = None
+        reference_image = None
+        provider_override = None
         for i, arg in enumerate(sys.argv):
             if arg == "--style" and i + 1 < len(sys.argv):
                 style_override = sys.argv[i + 1]
-        cmd_generate(persona, scene, style_override)
+            if arg == "--ref-image" and i + 1 < len(sys.argv):
+                reference_image = sys.argv[i + 1]
+            if arg == "--provider" and i + 1 < len(sys.argv):
+                provider_override = sys.argv[i + 1]
+        cmd_generate(
+            persona,
+            scene,
+            style_override,
+            reference_image=reference_image,
+            provider=provider_override
+        )
 
     elif cmd == "prompt":
         if len(sys.argv) < 4:
