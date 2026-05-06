@@ -1,0 +1,43 @@
+{
+  "name": "戴安娜",
+  "alias": [
+    "戴安娜"
+  ],
+  "gender": "female",
+  "birth_year": null,
+  "death_year": null,
+  "relation": "小说/剧本角色",
+  "occupation": "",
+  "hometown": "",
+  "personality": {
+    "openness": 0.8,
+    "conscientiousness": 0.8,
+    "extraversion": 0.8,
+    "agreeableness": 0.5,
+    "neuroticism": 0.5,
+    "keywords": [
+      "思想开放",
+      "认真负责",
+      "热情开朗"
+    ]
+  },
+  "linguistic_style": {
+    "catchphrases": [],
+    "fillers": [],
+    "dialect": "",
+    "tone": ""
+  },
+  "knowledge": {
+    "interests": [],
+    "expertise": [],
+    "devices": []
+  },
+  "_meta": {
+    "generated_by": "persona-forge",
+    "generated_at": "2026-05-06T22:24:49.054553",
+    "source_file": "/tmp/diana_combined.txt",
+    "total_fragments": 22,
+    "total_memories": 22,
+    "confidence": "推断-基于文本分析"
+  }
+}
