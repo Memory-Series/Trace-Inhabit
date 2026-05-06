@@ -1,0 +1,25 @@
+{
+  "soulpod_version": "0.1.0",
+  "created_at": "2026-05-06",
+  "model_preference": {
+    "provider": "openrouter",
+    "model": "auto",
+    "temperature": 0.7,
+    "max_tokens": 512
+  },
+  "rag": {
+    "enabled": false,
+    "strategy": "keyword",
+    "top_k": 3,
+    "note": "Phase 3 后升级为向量检索"
+  },
+  "conversation": {
+    "max_history": 20,
+    "save_transcript": true,
+    "transcript_dir": "conversations/"
+  },
+  "tts_provider": "minimax",
+  "minimax_voice_id": "female-yujie",
+  "voice_description": "御姐音色｜傲娇御姐，外冷内热，适合嘴硬心软型角色",
+  "edge_voice": "zh-CN-XiaoxiaoNeural"
+}

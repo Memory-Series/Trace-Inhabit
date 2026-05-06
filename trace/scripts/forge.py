@@ -158,7 +158,10 @@ def infer_voice_type(personality_keywords, occupation="", relation="", gender="m
     # ── 年龄推断 ──
     student = any(k in text for k in ["学生", "少年", "青年", "新手", "学员"])
     elder   = any(k in text for k in ["爷爷", "老人", "长辈", "退休", "老年"])
-    age_group = "elder" if elder else ("young" if student else "middle")
+    # 小女孩/萝莉/少女 → young；机器人女孩 → young（体型偏小）
+    is_child = any(k in text for k in ["小", "女孩", "萝莉", "幼", "童", "少女", "小女孩", "儿童"])
+    is_robot = any(k in text for k in ["机器人", "机器", "AI", "仿人", "安卓"])
+    age_group = "elder" if elder else ("young" if (student or is_child or is_robot) else "middle")
 
     # ── 性格标签（按优先级取第一个匹配） ──
     if cold:     ptag = "cold"
@@ -167,6 +170,10 @@ def infer_voice_type(personality_keywords, occupation="", relation="", gender="m
     elif deep:    ptag = "deep"
     elif humor or righteous: ptag = "humor"
     else:         ptag = "default"
+
+    # ── 女性 + sunny → 优先用 young（少女/开朗女性偏向年轻音色） ──
+    if is_female and ptag == "sunny":
+        age_group = "young"
 
     # ── 查规则表 ──
     voice_key = None
