@@ -141,7 +141,7 @@ SoulPod 包含以下文件：
 
 ## 依赖
 
-`pip install pdfplumber`
+`pip install pdfplumber==0.11.9`
 
 ## 用法
 
