@@ -135,7 +135,7 @@ python3 scripts/imggen.py generate <角色> <场景>  # 生成图片（需 MINIM
 
 ### 依赖
 
-- `pip install edge-tts` — 语音合成
+- `pip install edge-tts==7.2.8` — 语音合成
 - `MINIMAX_API_KEY` 环境变量 — 图片生成（MiniMax API Key）
 
 ## 语音功能（TTS）
