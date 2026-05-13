@@ -29,7 +29,7 @@ def load_state():
 
 
 def run_checker():
-    """运行 checker 检查是否该发消息"""
+    """运行本技能内的 checker.py 检查是否该发消息"""
     result = subprocess.run(
         [sys.executable, str(SCRIPTS_DIR / "checker.py"), "check"],
         capture_output=True, text=True, timeout=10
@@ -59,7 +59,7 @@ def save_to_history(persona_name, message, role="persona"):
 
 
 def generate_voice(text, voice_name="xiaoxiao"):
-    """生成语音文件"""
+    """调用本技能内的 tts.py 生成语音文件"""
     output_path = f"/tmp/mi_voice_{datetime.now().strftime('%H%M%S')}.mp3"
     result = subprocess.run(
         [sys.executable, str(SCRIPTS_DIR / "tts.py"), text, "-o", output_path, "-v", voice_name],

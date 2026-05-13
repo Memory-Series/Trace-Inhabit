@@ -61,7 +61,7 @@ def load_pdf(path):
                     text_parts.append(page_text)
         return "\n".join(text_parts)
     except ImportError:
-        print("❌ PDF 解析需要 pdfplumber: pip install --break-system-packages pdfplumber")
+        print("❌ PDF 解析需要 pdfplumber: pip install pdfplumber==0.11.9")
         sys.exit(1)
 
 

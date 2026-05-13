@@ -92,7 +92,7 @@ def get_cron_jobs():
 
 
 def remove_cron_job(name):
-    """删除指定 cron 任务"""
+    """删除本技能创建的指定 cron 任务（仅删除 skill 自身创建的任务）"""
     try:
         result = subprocess.run(
             [str(OPENCLAW), "cron", "rm", name],
@@ -114,7 +114,7 @@ def remove_cron_job(name):
 
 
 def clean_state_files():
-    """清理状态文件"""
+    """清理本技能自身生成的状态文件（仅清理 SKILL_DIR 下的文件）"""
     cleaned = 0
     for fname in STATE_FILES:
         fpath = SKILL_DIR / fname

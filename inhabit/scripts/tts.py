@@ -247,20 +247,8 @@ def infer_age(profile):
 
 
 def get_minimax_api_key():
-    """获取 MiniMax API Key，优先从环境变量，再从 models.json"""
-    key = os.environ.get("MINIMAX_API_KEY", "")
-    if key:
-        return key
-    
-    models_path = Path.home() / ".openclaw" / "agents" / "coding" / "agent" / "models.json"
-    if models_path.exists():
-        try:
-            with open(models_path) as f:
-                data = json.load(f)
-            return data.get("providers", {}).get("minimax", {}).get("apiKey", "")
-        except Exception:
-            pass
-    return ""
+    """获取 MiniMax API Key，仅从环境变量读取"""
+    return os.environ.get("MINIMAX_API_KEY", "")
 
 
 async def generate_edge_tts(text, output_path, voice_key, rate="+0%", volume="+0%"):
