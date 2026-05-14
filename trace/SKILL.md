@@ -91,6 +91,8 @@ memory-series/trace/
         ├── config.json
         ├── memories/
         │   └── raw_memories.json
+        ├── prompt/
+        │   └── universal_prompt.txt
         └── assets/                   # 与 origin 中的 assets 同步
             ├── images/
             └── audio/
@@ -106,7 +108,7 @@ SoulPod 包含以下文件：
 | `system_prompts.txt` | 说话风格定义 |
 | `config.json` | 运行时配置（含 TTS 音色推荐） |
 | `memories/raw_memories.json` | 记忆片段 |
-| `prompt/universal_prompt.txt` | 通用大Prompt（供普通LLM直接使用） |
+| `prompt/universal_prompt.txt` | 通用Prompt（供普通LLM直接使用） |
 | `assets/images/` | 角色参考图（用于图生图基准图） |
 | `assets/audio/` | 角色音频（用于声音复刻） |
 
