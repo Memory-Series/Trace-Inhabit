@@ -349,6 +349,11 @@ def create_soulpod(source_path, character_name, output_name=None):
     print(f"\n✅ Step 7: 验证...")
     is_valid = validate_pod(pod_dir)
 
+    # Step 8: 生成 universal_prompt.txt（供普通 LLM 使用）
+    print(f"\n📝 Step 8: 生成 universal_prompt.txt...")
+    generate_universal_prompt(pod_dir, profile, prompts, memories)
+    print(f"   ✅ prompt/universal_prompt.txt 已生成")
+
     if is_valid:
         print(f"\n{'='*50}")
         print(f"🎉 SoulPod 包生成成功！")
@@ -608,6 +613,75 @@ def preview_pod(pod_name):
             print(f"   ... ({len(lines) - 15} 行)")
 
     print(f"\n{'='*50}")
+
+
+def generate_universal_prompt(pod_dir, profile, system_prompts, memories, mode="复刻模式"):
+    """
+    根据 build_dynamic_prompt() 逻辑，将 SoulPod 三件套拼接为 universal_prompt.txt
+    """
+    pod_dir = Path(pod_dir)
+    name = profile.get("name", "未知")
+    relation = profile.get("relation", "")
+    personality = profile.get("personality", {})
+    style = profile.get("linguistic_style", {})
+
+    sections = []
+
+    # 头部
+    sections.append(
+        f"# Memory-Inhabit 人格激活 [{mode}]\n"
+        f"# 当前身份：{name}（{relation}）\n"
+    )
+
+    # system_prompts.txt 原文
+    sections.append(system_prompts)
+
+    # 基础信息
+    appearance = profile.get("appearance", {})
+    source = profile.get("source", "")
+    if appearance:
+        app_lines = []
+        for k, v in appearance.items():
+            app_lines.append(f"  {k}：{v}")
+        sections.append(f"\n## 外观\n" + "\n".join(app_lines))
+
+    # 性格关键词
+    keywords = personality.get("keywords", [])
+    if keywords:
+        sections.append(f"\n## 性格关键词\n{'、'.join(keywords)}")
+
+    # 语言风格
+    if style:
+        parts = []
+        catchphrases = style.get("catchphrases", [])
+        if catchphrases:
+            parts.append(f"常用语：{'、'.join(catchphrases)}")
+        fillers = style.get("fillers", [])
+        if fillers:
+            parts.append(f"语气词：{'、'.join(fillers)}")
+        tone = style.get("tone")
+        if tone:
+            parts.append(f"语气风格：{tone}")
+        if parts:
+            sections.append(f"\n## 语言风格\n" + "\n".join(parts))
+
+    # 记忆片段（最多15条）
+    if memories:
+        mem_lines = []
+        for mem in memories[:15]:
+            category = mem.get("category", "")
+            content = mem.get("content", "")
+            if content:
+                tag = f"[{category}] " if category else ""
+                mem_lines.append(f"- {tag}{content}")
+        if mem_lines:
+            sections.append(f"\n## 记忆片段\n" + "\n".join(mem_lines))
+
+    # 写入 prompt/universal_prompt.txt
+    prompt_dir = pod_dir / "prompt"
+    prompt_dir.mkdir(exist_ok=True)
+    output_path = prompt_dir / "universal_prompt.txt"
+    output_path.write_text("\n".join(sections), encoding="utf-8")
 
 
 def main():

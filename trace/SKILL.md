@@ -1,6 +1,6 @@
 ---
 name: memory-trace
-version: 1.1.3
+version: 1.1.4
 author: "EvangelionA"
 license: "MIT"
 tags:
