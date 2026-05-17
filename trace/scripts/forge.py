@@ -467,8 +467,11 @@ def create_soulpod(source_path, character_name, output_name=None, origin_dir=Non
     print(f"\n✅ Step 7: 验证...")
     is_valid = validate_pod(pod_dir)
 
-    # Step 8: 生成 universal_prompt.txt（供普通 LLM 使用）
-    print(f"\n📝 Step 8: 生成 universal_prompt.txt...")
+    # Step 8: 故事基线模板（若不存在）
+    write_story_baseline_template(pod_dir, profile, character_name)
+
+    # Step 9: 生成 universal_prompt.txt（供普通 LLM 使用）
+    print(f"\n📝 Step 9: 生成 universal_prompt.txt...")
     generate_universal_prompt(pod_dir, profile, prompts, memories)
     print(f"   ✅ prompt/universal_prompt.txt 已生成")
 
@@ -575,10 +578,48 @@ def generate_system_prompts(character_name, personality, style, fragments):
     return "\n".join(lines)
 
 
+def write_story_baseline_template(pod_dir, profile, character_name):
+    """
+    @brief 若不存在则写入 prompt/story_baseline.txt 模板
+    @param[in] pod_dir SoulPod 目录
+    @param[in] profile profile.json 内容
+    @param[in] character_name 角色名
+    """
+    prompt_dir = Path(pod_dir) / "prompt"
+    prompt_dir.mkdir(exist_ok=True)
+    path = prompt_dir / "story_baseline.txt"
+    if path.exists() and path.stat().st_size > 0:
+        print(f"   ✅ prompt/story_baseline.txt 已存在，跳过")
+        return
+
+    source = profile.get("source", "作品")
+    relation = profile.get("relation", "角色")
+    template = f"""# 故事基线 — {character_name}
+
+> 与玩家互动时的叙事主轴。请人工补充「当前主线」; 随关系推进可修订本文件。
+
+## 当前主线
+（一段正在进行的事件或与玩家之间的张力, 例如：{source} 世界观下的某一周 / 某次任务）
+
+## 与玩家的关系位
+{relation}
+
+## 对话倾向
+- 
+- 
+
+## 阶段目标（可随互动推进）
+从 … 到 …（保持可连载, 避免一次说破）
+"""
+    path.write_text(template, encoding="utf-8")
+    print(f"   ✅ prompt/story_baseline.txt 模板已生成（请编辑补充主线）")
+
+
 def validate_pod(pod_dir):
     """验证 SoulPod 包的完整性"""
     pod_dir = Path(pod_dir)
     issues = []
+    warnings = []
 
     required_files = {
         "profile.json": "人格画像",
@@ -595,6 +636,15 @@ def validate_pod(pod_dir):
             issues.append(f"⚠️ {fname} 为空文件")
         else:
             print(f"   ✅ {fname}")
+
+    baseline = pod_dir / "prompt" / "story_baseline.txt"
+    if not baseline.exists() or baseline.stat().st_size == 0:
+        warnings.append("⚠️ 缺少 prompt/story_baseline.txt (故事基线)")
+    else:
+        print(f"   ✅ prompt/story_baseline.txt")
+
+    for w in warnings:
+        print(f"   {w}")
 
     if issues:
         for issue in issues:
@@ -753,6 +803,12 @@ def generate_universal_prompt(pod_dir, profile, system_prompts, memories, mode="
 
     # system_prompts.txt 原文
     sections.append(system_prompts)
+
+    baseline_path = pod_dir / "prompt" / "story_baseline.txt"
+    if baseline_path.exists():
+        baseline = baseline_path.read_text(encoding="utf-8").strip()
+        if baseline:
+            sections.append(f"\n{baseline}")
 
     # 基础信息
     appearance = profile.get("appearance", {})

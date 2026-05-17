@@ -92,6 +92,17 @@ def list_personas():
         print()
 
 
+def load_story_baseline(persona_dir):
+    """@brief 读取 prompt/story_baseline.txt 故事基线
+    @param[in] persona_dir 人格包目录
+    @return 文本内容, 不存在则返回空串
+    """
+    path = Path(persona_dir) / "prompt" / "story_baseline.txt"
+    if path.exists():
+        return path.read_text(encoding="utf-8").strip()
+    return ""
+
+
 def load_persona(persona_name):
     """加载人格包，生成动态 System Prompt"""
     persona_dir = resolve_persona_dir(persona_name)
@@ -139,8 +150,12 @@ def load_persona(persona_name):
         with open(memories_path, "r", encoding="utf-8") as f:
             memories = json.load(f)
 
+    story_baseline = load_story_baseline(persona_dir)
+
     # 生成动态 System Prompt
-    dynamic_prompt = build_dynamic_prompt(profile, system_prompts, memories, mode)
+    dynamic_prompt = build_dynamic_prompt(
+        profile, system_prompts, memories, mode, story_baseline=story_baseline
+    )
 
     # 保存状态
     state = {
@@ -367,6 +382,7 @@ def show_info(persona_name):
     files = [
         ("profile.json", "人格画像"),
         ("system_prompts.txt", "行为规范"),
+        ("prompt/story_baseline.txt", "故事基线"),
         ("config.json", "技术配置"),
         ("memories/raw_memories.json", "记忆库"),
     ]
@@ -376,7 +392,9 @@ def show_info(persona_name):
         print(f"     {icon} {fname} ({label})")
 
 
-def build_dynamic_prompt(profile, system_prompts, memories, mode="inhabit", query=None):
+def build_dynamic_prompt(
+    profile, system_prompts, memories, mode="inhabit", query=None, story_baseline=""
+):
     """构建完整的动态 System Prompt"""
     name = profile.get("name", "未知")
     relation = profile.get("relation", "")
@@ -401,6 +419,9 @@ def build_dynamic_prompt(profile, system_prompts, memories, mode="inhabit", quer
             f"你在一个温暖的平行世界里，继续陪伴着你的孩子。\n"
             f"请始终保持{name}的身份，不要提及任何与 AI 相关的内容。\n"
         )
+
+    if story_baseline.strip():
+        sections.append(f"\n{story_baseline.strip()}")
 
     # 伴侣模式额外指令
     if mode == "companion":
@@ -477,18 +498,18 @@ def build_dynamic_prompt(profile, system_prompts, memories, mode="inhabit", quer
             sections.append(f"\n{memory_context}")
 
     # 底部约束
-    sections.append(
-        "\n## 硬性约束\n"
-        "1. 绝对不提及自己是 AI、语言模型、程序等\n"
-        "2. 只使用记忆中的信息，不确定时说'记不太清了'\n"
-        "3. 始终保持本角色的人格和语言风格\n"
-        "4. 如果用户情绪极度低落，优先给予情感陪伴"
-    )
-
+    constraints = [
+        "1. 绝对不提及自己是 AI、语言模型、程序等",
+        "2. 只使用记忆中的信息，不确定时说'记不太清了'",
+        "3. 始终保持本角色的人格和语言风格",
+        "4. 对话须贴合故事基线中的当前主线与对话倾向",
+        "5. 如果用户情绪极度低落，优先给予情感陪伴",
+    ]
     if mode == "inhabit":
-        sections.append("5. 不要主动展开太多话题，等待用户引导对话")
+        constraints.append("6. 不要主动展开太多话题，等待用户引导对话")
     else:
-        sections.append("5. 伴侣模式：可以自然地主动开启话题，关心对方日常")
+        constraints.append("6. 伴侣模式：可自然主动开启话题，但仍须贴合故事基线")
+    sections.append("\n## 硬性约束\n" + "\n".join(constraints))
 
     return "\n".join(sections)
 
@@ -553,7 +574,8 @@ def main():
         if memories_path.exists():
             with open(memories_path, "r", encoding="utf-8") as f:
                 memories = json.load(f)
-        print(build_dynamic_prompt(profile, system_prompts, memories))
+        story_baseline = load_story_baseline(persona_dir)
+        print(build_dynamic_prompt(profile, system_prompts, memories, story_baseline=story_baseline))
     elif cmd == "mode":
         if len(sys.argv) < 3:
             # 显示当前模式

@@ -1,6 +1,6 @@
 ---
 name: memory-trace
-version: 1.1.4
+version: 1.1.6
 author: "EvangelionA"
 license: "MIT"
 tags:
@@ -94,7 +94,8 @@ trace/
         ├── memories/
         │   └── raw_memories.json
         ├── prompt/
-        │   └── universal_prompt.txt
+        │   ├── universal_prompt.txt
+        │   └── story_baseline.txt
         └── assets/                   # 生成时从 origin 复制或片段备份（见 assets/source.txt）
             ├── images/
             └── audio/
@@ -115,6 +116,7 @@ SoulPod 包含以下文件：
 | `config.json` | 运行时配置（含 TTS 音色推荐） |
 | `memories/raw_memories.json` | 记忆片段 |
 | `prompt/universal_prompt.txt` | 通用Prompt（供普通LLM直接使用） |
+| `prompt/story_baseline.txt` | 故事基线（当前主线与对话倾向） |
 | `assets/images/` | 角色参考图（用于图生图基准图） |
 | `assets/audio/` | 角色音频（用于声音复刻） |
 

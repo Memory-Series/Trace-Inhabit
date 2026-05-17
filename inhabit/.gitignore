@@ -7,3 +7,9 @@ dist/
 build/
 .eggs/
 # SoulPod packages loaded at runtime
+
+# 运行时状态与私密日记（含对话摘要，仅本地）
+.mi_state.json
+.mi_stats.json
+personas/*/memories/diary/
+personas/*/memories/history/

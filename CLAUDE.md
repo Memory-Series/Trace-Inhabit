@@ -26,6 +26,9 @@ system_prompts.txt  # 说话风格
 config.json         # 运行时配置
 memories/
   └── raw_memories.json
+prompt/
+  ├── universal_prompt.txt   # 供普通 LLM 直接使用
+  └── story_baseline.txt     # 故事基线（当前主线与对话倾向）
 assets/
   └── source.txt
 ```
@@ -80,3 +83,4 @@ assets/
 - 编辑器目录（`.vscode/`、`.idea/`）与 OS 垃圾文件（`.DS_Store` 等）
 - 任何 `.env` 或含 API Key、Token 等敏感信息的文件
 - `trace/origin/**/assets/images/`、`trace/origin/**/assets/audio/`、`_merged_source.md`（见 `trace/.gitignore`）
+- `inhabit/personas/*/memories/diary/`、`inhabit/personas/*/memories/history/`（私密日记与对话流水，见 `inhabit/.gitignore`）

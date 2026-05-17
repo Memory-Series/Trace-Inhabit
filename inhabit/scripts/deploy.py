@@ -63,6 +63,14 @@ def load_persona(persona_name):
     else:
         data["config"] = {}
 
+    # story_baseline
+    baseline_path = persona_dir / "prompt" / "story_baseline.txt"
+    if baseline_path.exists():
+        with open(baseline_path, "r", encoding="utf-8") as f:
+            data["story_baseline"] = f.read()
+    else:
+        data["story_baseline"] = ""
+
     # memories
     memories_path = persona_dir / "memories" / "raw_memories.json"
     if memories_path.exists():
@@ -86,6 +94,7 @@ def build_agent_system_prompt(data):
     """构建完整的 agent system prompt"""
     profile = data["profile"]
     system_prompts = data["system_prompts"]
+    story_baseline = data.get("story_baseline", "")
     memories = data["memories"]
     memory_md = data["memory_md"]
 
@@ -114,6 +123,9 @@ def build_agent_system_prompt(data):
 你是{name}。
 请始终保持{name}的身份，不要提及任何与 AI 相关的内容。
 自然地与对方对话，像一个真实的人一样。""")
+
+    if story_baseline.strip():
+        sections.append(story_baseline.strip())
 
     # ====== 性格 ======
     keywords = personality.get("keywords", [])
