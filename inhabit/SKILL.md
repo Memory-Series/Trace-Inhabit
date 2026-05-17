@@ -1,6 +1,6 @@
 ---
 name: memory-inhabit
-version: 1.1.4
+version: 1.1.5
 author: "EvangelionA"
 license: "MIT"
 tags:
