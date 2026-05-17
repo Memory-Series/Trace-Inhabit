@@ -23,7 +23,7 @@ homepage: "https://memory-series.github.io/#/product/inhabit"
 
 本技能负责**消费** SoulPod：把 `personas/<角色名>/` 下的 MI 包加载为可对话人格。标准 SoulPod 由 **Memory-Trace（寻迹）** 从文本素材分析、建模并生成；两技能共用 `profile.json`、`system_prompts.txt`、`memories/` 等约定，Trace 产出经 `forge.py install`（或手动复制）装入 `personas/` 后即可由本技能使用。
 
-- 上游技能说明：`../Memory-Trace/SKILL.md`
+- 上游技能说明：`../trace/SKILL.md`
 
 ## 角色
 

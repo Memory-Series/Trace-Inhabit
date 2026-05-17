@@ -31,7 +31,7 @@ The former is about understanding a character; the latter is about bringing that
 ### [Inhabit](./inhabit/) 
 
 - Loads SoulPods and enables in-character conversation
-- Provides modes: Replica Mode / Companion Mode / Story Mode
+- Provides modes: Replica Mode / Companion Mode
 - Supports scene-based dialogue, character image generation, and character voice generation
 
 For more details, please refer to `SKILL.md` in each project directory.

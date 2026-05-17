@@ -3,7 +3,8 @@
 Persona Forge — 人格复刻工坊主控脚本
 
 用法：
-  python3 forge.py create --source <file> --character "名字"   从素材生成 SoulPod 包
+  python3 forge.py create --from-origin <游戏>/<角色名> [--character "名字"]  从 origin/ 合并素材并生成
+  python3 forge.py create --source <file> --character "名字"   从单个文件生成 SoulPod 包
   python3 forge.py list                                        列出已生成的 SoulPod 包
   python3 forge.py validate <pod_name>                         验证 SoulPod 包完整性
   python3 forge.py preview <pod_name>                          预览 SoulPod 包内容
@@ -21,9 +22,15 @@ from datetime import datetime
 # 本项目目录
 FORGE_DIR = Path(__file__).parent.parent
 OUTPUT_DIR = FORGE_DIR / "output"
+ORIGIN_DIR = FORGE_DIR / "origin"
 
-# 目标目录：Memory-Inhabit 的 personas/
-SOULPOD_DIR = Path(__file__).parent.parent.parent / "Memory-Inhabit" / "personas"
+# 引入 origin/ 之前已内置、不补齐 origin 的遗留角色（仅 output + personas 双线维护）
+LEGACY_PERSONAS = frozenset({
+    "夏以昼", "叶修", "庄方宜", "戴安娜", "秦彻", "拓跋玉儿", "Lucy",
+})
+
+# 目标目录：inhabit 技能的 personas/（Monorepo 内 ../inhabit/personas）
+SOULPOD_DIR = Path(__file__).parent.parent.parent / "inhabit" / "personas"
 
 # 引入分析器
 sys.path.insert(0, str(Path(__file__).parent))
@@ -198,7 +205,113 @@ def infer_voice_type(personality_keywords, occupation="", relation="", gender="m
     return (voice_key, voice_id, voice_desc, edge_voice)
 
 
-def create_soulpod(source_path, character_name, output_name=None):
+def find_origin_dir(character_name, source_work=None):
+    """
+    @brief 在 trace/origin/ 下定位角色素材目录
+    @param[in] character_name 角色名
+    @param[in] source_work 作品名（可选，用于消歧）
+    @return Path 或 None
+    """
+    character_name = sanitize_name(character_name)
+    if source_work:
+        candidate = ORIGIN_DIR / sanitize_name(source_work) / character_name
+        if candidate.is_dir():
+            return candidate
+    if not ORIGIN_DIR.is_dir():
+        return None
+    matches = []
+    for game_dir in sorted(ORIGIN_DIR.iterdir()):
+        if not game_dir.is_dir() or game_dir.name.startswith("."):
+            continue
+        candidate = game_dir / character_name
+        if candidate.is_dir():
+            matches.append(candidate)
+    if len(matches) == 1:
+        return matches[0]
+    if len(matches) > 1:
+        paths = ", ".join(str(p.relative_to(ORIGIN_DIR)) for p in matches)
+        print(f"❌ 角色「{character_name}」在多个作品下存在 origin：{paths}")
+        print("   请使用 --from-origin <游戏>/<角色名> 明确指定")
+        sys.exit(1)
+    return None
+
+
+def resolve_origin_dir(from_origin_arg, character_name=None):
+    """
+    @brief 解析 --from-origin 参数为素材目录 Path
+    @param[in] from_origin_arg 形如「恋与深空/秦彻」或「秦彻」
+    @param[in] character_name --character 覆盖角色名（可选）
+    """
+    raw = from_origin_arg.strip().replace("\\", "/")
+    parts = [p for p in raw.split("/") if p and p not in (".", "..")]
+    if len(parts) >= 2:
+        game = sanitize_name(parts[0])
+        char = sanitize_name(character_name or parts[-1])
+        origin_dir = ORIGIN_DIR / game / char
+    elif len(parts) == 1:
+        char = sanitize_name(character_name or parts[0])
+        origin_dir = find_origin_dir(char)
+        if origin_dir is None:
+            print(f"❌ 未找到 trace/origin/*/{char}/，请先创建素材目录或使用 <游戏>/{char}")
+            sys.exit(1)
+    else:
+        print("❌ --from-origin 格式无效，应为 <游戏>/<角色名> 或 <角色名>")
+        sys.exit(1)
+
+    if not origin_dir.is_dir():
+        print(f"❌ origin 目录不存在: {origin_dir}")
+        print(f"   请先创建 trace/origin/<游戏>/{sanitize_name(character_name or parts[-1])}/ 并放入 *.md")
+        sys.exit(1)
+    return origin_dir
+
+
+def merge_origin_markdown(origin_dir):
+    """
+    @brief 合并 origin 目录下所有 *.md（按文件名排序）为单一分析用文件
+    @param[in] origin_dir origin 角色目录
+    @return 合并后的 Path（写入 origin 目录下的 _merged_source.md）
+    """
+    md_files = sorted(
+        f for f in origin_dir.glob("*.md")
+        if f.is_file() and f.name != "_merged_source.md"
+    )
+    if not md_files:
+        print(f"❌ {origin_dir} 下没有可用的 *.md 素材")
+        sys.exit(1)
+
+    sections = []
+    for path in md_files:
+        body = path.read_text(encoding="utf-8").strip()
+        sections.append(f"# {path.name}\n\n{body}")
+
+    merged_path = origin_dir / "_merged_source.md"
+    merged_path.write_text("\n\n---\n\n".join(sections), encoding="utf-8")
+    print(f"   已合并 {len(md_files)} 个 md → {merged_path.relative_to(FORGE_DIR)}")
+    return merged_path
+
+
+def sync_origin_assets(origin_dir, pod_dir):
+    """
+    @brief 将 origin/assets 下的 images、audio 复制到 output SoulPod 的 assets/
+    @param[in] origin_dir origin 角色目录
+    @param[in] pod_dir output/<角色名>/ 目录
+    """
+    copied = 0
+    for sub in ("images", "audio"):
+        src_dir = origin_dir / "assets" / sub
+        if not src_dir.is_dir():
+            continue
+        dst_dir = pod_dir / "assets" / sub
+        dst_dir.mkdir(parents=True, exist_ok=True)
+        for item in src_dir.iterdir():
+            if item.is_file():
+                shutil.copy2(item, dst_dir / item.name)
+                copied += 1
+    if copied:
+        print(f"   已从 origin 同步 {copied} 个 assets 文件到 output/assets/")
+
+
+def create_soulpod(source_path, character_name, output_name=None, origin_dir=None):
     """
     完整流程：从素材文件生成 SoulPod 包
     """
@@ -209,8 +322,12 @@ def create_soulpod(source_path, character_name, output_name=None):
     output_name = sanitize_name(output_name)
 
     print(f"🔮 Persona Forge — 开始复刻「{character_name}」")
+    if origin_dir:
+        print(f"   origin：{origin_dir.relative_to(FORGE_DIR)}")
     print(f"   来源：{source_path}")
     print(f"   输出：{output_name}/")
+    if character_name in LEGACY_PERSONAS and origin_dir:
+        print(f"   ℹ️ 「{character_name}」为遗留内置角色；本次从 origin 复刻将覆盖 output，请记得 forge install 同步 personas")
     print()
 
     # Step 1: 加载素材
@@ -257,6 +374,8 @@ def create_soulpod(source_path, character_name, output_name=None):
     profile = {
         "name": character_name,
         "alias": [character_name],
+        "source_type": "virtual",
+        "source": origin_dir.parent.name if origin_dir else "",
         "gender": personality.get("gender", "male"),  # 从素材自动推断
         "birth_year": None,
         "death_year": None,
@@ -281,6 +400,7 @@ def create_soulpod(source_path, character_name, output_name=None):
             "generated_by": "persona-forge",
             "generated_at": datetime.now().isoformat(),
             "source_file": str(source_path),
+            "origin_dir": str(origin_dir.relative_to(FORGE_DIR)) if origin_dir else None,
             "total_fragments": total_frags,
             "total_memories": len(memories),
             "confidence": personality.get("confidence", "unknown")
@@ -314,12 +434,6 @@ def create_soulpod(source_path, character_name, output_name=None):
             "temperature": 0.7,
             "max_tokens": 512
         },
-        "rag": {
-            "enabled": False,
-            "strategy": "keyword",
-            "top_k": 3,
-            "note": "Phase 3 后升级为向量检索"
-        },
         "conversation": {
             "max_history": 20,
             "save_transcript": True,
@@ -345,6 +459,10 @@ def create_soulpod(source_path, character_name, output_name=None):
     with open(pod_dir / "assets" / "source.txt", "w", encoding="utf-8") as f:
         f.write("\n".join(source_backup))
 
+    if origin_dir:
+        print(f"\n📂 同步 origin/assets → output/assets ...")
+        sync_origin_assets(origin_dir, pod_dir)
+
     # Step 7: 验证
     print(f"\n✅ Step 7: 验证...")
     is_valid = validate_pod(pod_dir)
@@ -367,9 +485,9 @@ def create_soulpod(source_path, character_name, output_name=None):
         print(f"   2. 运行 python3 scripts/forge.py install {output_name} 安装到入心技能")
         print(f"   3. 对助手说'我想和{character_name}聊聊'开始对话")
         print()
-        # 自动询问是否安装到 Memory-Inhabit
+        # 自动询问是否安装到 inhabit/personas/
         try:
-            resp = input(f"是否立即安装到 Memory-Inhabit？(Y/n): ").strip().lower()
+            resp = input(f"是否立即安装到 inhabit/personas/？(Y/n): ").strip().lower()
             if resp in ("", "y", "yes"):
                 install_pod(output_name)
         except EOFError:
@@ -517,7 +635,7 @@ def list_pods():
 
 
 def install_pod(pod_name):
-    """将生成的 SoulPod 包安装到 Memory-Inhabit 的 personas/ 目录"""
+    """将生成的 SoulPod 包安装到 inhabit/personas/ 目录"""
     source = OUTPUT_DIR / pod_name
     target = SOULPOD_DIR / pod_name
 
@@ -689,7 +807,8 @@ def main():
         print("Persona Forge — 人格复刻工坊")
         print()
         print("用法：")
-        print("  python3 forge.py create --source <file> --character '名字'  创建 SoulPod")
+        print("  python3 forge.py create --from-origin <游戏>/<角色>  从 trace/origin/ 合并并创建")
+        print("  python3 forge.py create --source <file> --character '名字'  从单文件创建 SoulPod")
         print("  python3 forge.py list                                       列出已生成的包")
         print("  python3 forge.py validate <pod_name>                        验证包完整性")
         print("  python3 forge.py preview <pod_name>                         预览包内容")
@@ -699,13 +818,16 @@ def main():
     cmd = sys.argv[1]
 
     if cmd == "create":
-        # 解析 --source 和 --character
         source = None
+        from_origin = None
         character = None
         output_name = None
         i = 2
         while i < len(sys.argv):
-            if sys.argv[i] in ("--source", "-s") and i + 1 < len(sys.argv):
+            if sys.argv[i] in ("--from-origin", "--origin") and i + 1 < len(sys.argv):
+                from_origin = sys.argv[i + 1]
+                i += 2
+            elif sys.argv[i] in ("--source", "-s") and i + 1 < len(sys.argv):
                 source = sys.argv[i + 1]
                 i += 2
             elif sys.argv[i] in ("--character", "-c") and i + 1 < len(sys.argv):
@@ -717,11 +839,20 @@ def main():
             else:
                 i += 1
 
-        if not source or not character:
-            print("❌ 请指定 --source <file> 和 --character '名字'")
+        origin_dir = None
+        if from_origin:
+            origin_dir = resolve_origin_dir(from_origin, character)
+            character = character or sanitize_name(origin_dir.name)
+            source = merge_origin_markdown(origin_dir)
+        elif source:
+            if not character:
+                print("❌ 使用 --source 时请指定 --character '名字'")
+                sys.exit(1)
+        else:
+            print("❌ 请指定 --from-origin <游戏>/<角色名> 或 --source <file> --character '名字'")
             sys.exit(1)
 
-        create_soulpod(source, character, output_name)
+        create_soulpod(source, character, output_name, origin_dir=origin_dir)
 
     elif cmd == "list":
         list_pods()

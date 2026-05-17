@@ -7,12 +7,6 @@
     "temperature": 0.7,
     "max_tokens": 512
   },
-  "rag": {
-    "enabled": false,
-    "strategy": "keyword",
-    "top_k": 3,
-    "note": "Phase 3 后升级为向量检索"
-  },
   "conversation": {
     "max_history": 20,
     "save_transcript": true,
