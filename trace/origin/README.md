@@ -45,7 +45,7 @@ python forge.py install 秦彻
 | 类型 | 维护目录 |
 |------|----------|
 | **新角色** | `origin/` → `output/` → `personas/`（三线） |
-| **遗留内置**（夏以昼、叶修、庄方宜、戴安娜、秦彻、拓跋玉儿、Lucy） | 仅 `output/` + `personas/`（双线，不补齐 origin） |
+| **遗留内置**（夏以昼、叶修、秦彻、Lucy） | 仅 `output/` + `personas/`（双线，不补齐 origin） |
 
 ## Git
 

@@ -55,7 +55,7 @@ assets/
 
 ### 遗留内置角色（「双线」）
 
-夏以昼、叶修、庄方宜、戴安娜、秦彻、拓跋玉儿、Lucy：**不补齐** `trace/origin/`，仅以 `trace/output/` + `inhabit/personas/` 维护。若从 origin 重新复刻，则走三线并 `install` 同步。
+夏以昼、叶修、秦彻、Lucy：**不补齐** `trace/origin/`，仅以 `trace/output/` + `inhabit/personas/` 维护。若从 origin 重新复刻，则走三线并 `install` 同步。
 
 ## 原始素材与 Git（trace/origin）
 

@@ -26,7 +26,7 @@ ORIGIN_DIR = FORGE_DIR / "origin"
 
 # 引入 origin/ 之前已内置、不补齐 origin 的遗留角色（仅 output + personas 双线维护）
 LEGACY_PERSONAS = frozenset({
-    "夏以昼", "叶修", "庄方宜", "戴安娜", "秦彻", "拓跋玉儿", "Lucy",
+    "夏以昼", "叶修", "秦彻", "Lucy",
 })
 
 # 目标目录：inhabit 技能的 personas/（Monorepo 内 ../inhabit/personas）
