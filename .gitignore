@@ -16,3 +16,6 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+
+# Agent 本地状态（WorkBuddy 会话记忆目录，非项目产物）
+.workbuddy/

@@ -105,7 +105,7 @@ SoulPod 包含以下文件：
 | `memories/raw_memories.json` | 记忆片段 |
 | `prompt/universal_prompt.txt` | 通用Prompt（供普通LLM直接使用） |
 | `prompt/story_baseline.txt` | 故事基线（当前主线与对话倾向） |
-| `assets/images/` | 角色参考图（用于图生图基准图） |
+| `assets/images/` | 角色参考图（用于图生图基准图）。**兼容早期命名 `assets/image/`**，两者都会被读取 |
 | `assets/audio/` | 角色音频（用于声音复刻） |
 
 ### profile.json 必需字段
@@ -115,6 +115,7 @@ SoulPod 包含以下文件：
   "name": "角色名",
   "source_type": "virtual | real",
   "source": "作品名",
+  "gender": "male | female",
   "appearance": {
     "gender": "male | female",
     "hair": "发型发色",
@@ -124,6 +125,10 @@ SoulPod 包含以下文件：
   }
 }
 ```
+
+> **`gender` 口径**：顶层 `gender` 为权威字段（`inhabit/scripts/tts.py`、`imggen.py`
+> 读取顶层）；`appearance.gender` 是冗余副本，必须与顶层保持一致。
+> 参考图目录同时接受 `assets/images/` 与 `assets/image/`。
 
 ### 音色推测功能
 

@@ -3,11 +3,21 @@
   "alias": [
     "夏以昼"
   ],
+  "source_type": "virtual",
+  "source": "恋与深空",
+  "gender": "male",
   "birth_year": null,
   "death_year": null,
   "relation": "小说/剧本角色",
-  "occupation": "",
-  "hometown": "",
+  "occupation": "DAA战斗机飞行员/执舰官",
+  "hometown": "天行市",
+  "appearance": {
+    "gender": "male",
+    "hair": "黑色短发，额前碎发",
+    "face": "棱角分明的脸庞，深邃眼睛",
+    "body": "高挑健壮，178cm左右",
+    "style": "运动休闲，飞行服或休闲卫衣"
+  },
   "personality": {
     "openness": 0.8,
     "conscientiousness": 0.5,

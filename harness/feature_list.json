@@ -1,0 +1,176 @@
+{
+  "project": "Memory Series — Trace / Inhabit",
+  "last_updated": "2026-09-13",
+  "rules": {
+    "single_active_feature": true,
+    "passing_requires_evidence": true,
+    "do_not_skip_verification": true,
+    "git_requires_user_approval": true
+  },
+  "verification_entry": {
+    "smoke": "python harness/verify.py --quick",
+    "full": "python harness/verify.py",
+    "wrapper": "bash harness/init.sh",
+    "note": "verify.py 是验证规则的唯一实现处。任何改动验证规则的行为都必须改这个文件并记入 claude-progress.md。"
+  },
+  "status_legend": {
+    "not_started": "功能还没开始做。",
+    "in_progress": "这个功能是当前唯一正在进行的任务。",
+    "blocked": "因为已记录的阻塞问题，当前无法继续推进。",
+    "passing": "要求的验证已经通过，并且证据已经记录。"
+  },
+  "features": [
+    {
+      "id": "harness-001",
+      "priority": 1,
+      "area": "harness",
+      "title": "建立 harness 约束与统一验证入口",
+      "user_visible_behavior": "任何会话开始前，运行 init.sh 都能得到一份可复现的仓库健康报告，并且报告的失败项精确到文件与字段。",
+      "status": "passing",
+      "verification": [
+        "python harness/verify.py --quick 退出码为 0。",
+        "bash harness/init.sh 能完成编排：定位 Python、打印标准使用入口、并以 verify.py 的退出码收尾。",
+        "verify.py 覆盖十类检查：结构 / Python 语法 / 文本编码 / harness 自身完整性 / 模块导入 / CLI 冒烟 / SoulPod 完整性 / profile 字段 / output↔personas 同步 / 安全与 Git 卫生。",
+        "故意制造一个 FAIL（例如临时删除某角色 profile.json），verify.py 必须以非零码退出并指出具体文件。"
+      ],
+      "evidence": [
+        "2026-09-13: python harness/verify.py → FAIL 9 / WARN 4 / INFO 1 / PASS 21，退出码 1；报告精确定位到 trace/output/Lucy 缺 4 个必需文件、4 个角色 profile.json 缺 gender、trace/output 叶修与夏以昼缺 source_type/source，均为真实问题。",
+        "2026-09-13: python harness/verify.py --quick → FAIL 0，退出码 0，确认快速通道可用于开工前 smoke test。",
+        "2026-09-13: 故意制造 FAIL 的回归测试——在 inhabit/personas 下临时创建 __verify_probe__（仅含字段残缺的 profile.json），verify.py 立即 FAIL 11 并同时命中「SoulPod/完整性」与「SoulPod/profile 字段」两项检查、精确报出该目录名，退出码 1；删除探针后结果回归 FAIL 9。",
+        "2026-09-13: Git Bash（PortableGit 1.2.0）执行 harness/init.sh，编排输出正确（定位 python3、跳过依赖同步、调用 verify.py），退出码与 verify.py 一致。",
+        "2026-09-13: python trace/scripts/forge.py list 与 python inhabit/scripts/loader.py list 均退出码 0。",
+        "2026-09-13: 数据层修复完成后复跑 python harness/verify.py → FAIL 0 / WARN 1 / INFO 1 / PASS 31，退出码 0；唯一 WARN 是「Git/未跟踪」中待维护者确认提交的 harness/ 与 trace/output/Lucy/*（属预期，非缺陷）。"
+      ],
+      "notes": "本功能即 harness 框架搭建本身。init.sh 相对模板有两处改动，见 claude-progress.md Session 001。Session 002 对 verify.py 做了三项规则精化，见 notes 与 claude-progress.md。"
+    },
+    {
+      "id": "base-001",
+      "priority": 2,
+      "area": "baseline",
+      "title": "消除残缺与空 SoulPod 包",
+      "user_visible_behavior": "trace/output 与 inhabit/personas 下不再存在空目录或缺必需文件的角色包，仓库可作为开箱即用 Demo 分发。",
+      "status": "passing",
+      "verification": [
+        "python harness/verify.py，SoulPod/完整性 检查无 FAIL。",
+        "确认 trace/output/Lucy 已补齐或已按决策移除。",
+        "确认 inhabit/personas/庄方宜 与 trace/output/庄方宜 已补齐或已按决策移除。"
+      ],
+      "evidence": [
+        "2026-09-13 决策：庄方宜 = 删除（git 历史 commit 25916e8 已明确「移除庄方宜、戴安娜、拓跋玉儿角色卡，精简发布体积」，本地仅是残留）。",
+        "2026-09-13 执行：inhabit/personas/庄方宜 实际是 assets/images/ 的空目录树（git 不跟踪空目录），已自底向上删除；trace/output/庄方宜 不存在。",
+        "2026-09-13 决策：trace/output/Lucy = 从 inhabit/personas/Lucy 反向补齐（恢复 CLAUDE.md「双线」约定）。",
+        "2026-09-13 执行：trace/output/Lucy 新增 profile.json、config.json、system_prompts.txt、memories/raw_memories.json、assets/source.txt，并覆盖 prompt/story_baseline.txt 与 prompt/universal_prompt.txt（原文件内容相同，仅行尾 CRLF/LF 差异）。",
+        "2026-09-13: python harness/verify.py → 8 个角色包（4 角色 × personas/output）全部「文件齐全」，SoulPod/完整性 无 FAIL。"
+      ],
+      "notes": "处置口径由用户在 Session 002 确认（「按建议执行」）。删除空目录对 git 无影响（空目录本就不入版本库）。"
+    },
+    {
+      "id": "base-002",
+      "priority": 3,
+      "area": "baseline",
+      "title": "补齐 profile.json 必需字段",
+      "user_visible_behavior": "每个角色包的 profile.json 都含 name / source_type / source / gender / appearance，TTS 音色与图生图外观不再回退默认值。",
+      "status": "passing",
+      "verification": [
+        "python harness/verify.py，SoulPod/profile 字段 检查无 FAIL。",
+        "对各角色运行 inhabit/scripts/tts.py --persona <角色目录> --preview，确认推断性别与角色设定一致。",
+        "确认顶层 gender 与 appearance.gender 冗余副本一致（verify.py 新增 WARN 级校验）。"
+      ],
+      "evidence": [
+        "2026-09-13 决策：gender 权威字段放顶层（与 trace/scripts/forge.py:379 的生成口径、inhabit/scripts/tts.py 与 imggen.py 的读取口径一致），并在 appearance 内保留一份冗余副本以兼容 trace/SKILL.md 旧口径。",
+        "2026-09-13 执行：为 4 个角色 × 2 侧共 8 个 profile.json 写入 gender（夏以昼/叶修/秦彻 = male，Lucy = female），并同步写入 appearance.gender。",
+        "2026-09-13: python inhabit/scripts/tts.py --persona <角色> --preview 实测——Lucy「性别: 女」+ 女声（xiaoxiao）、夏以昼/叶修/秦彻「性别: 男」+ 男声（yunjian）。修复前 Lucy 因 gender 缺失会回退 male。",
+        "2026-09-13: python harness/verify.py → 8 个角色包全部「必需字段齐全」，SoulPod/profile 字段 无 FAIL。",
+        "2026-09-13: 顺带对齐 trace/output/夏以昼 与 trace/output/叶修 的 profile.json（原缺 source_type / source；夏以昼另缺 appearance、occupation 与 hometown 为空），已与 personas 侧内容统一。"
+      ],
+      "notes": "本轮只补字段与对齐内容，未改动任何人格评分或关键词（「自动推断与人工设定脱节」仍由 quality-001 跟踪）。"
+    },
+    {
+      "id": "base-003",
+      "priority": 4,
+      "area": "baseline",
+      "title": "对齐 trace/output 与 inhabit/personas",
+      "user_visible_behavior": "同一角色在两个目录下的 SoulPod 语义内容一致，不存在语义文件的内容分叉，也不存在仅在单侧存在的语义文件。",
+      "status": "passing",
+      "verification": [
+        "python harness/verify.py，同步/output↔personas 检查无 WARN。",
+        "确认有意保留的差异（personas 侧独有媒体资源）已被 verify.py 中显式声明的豁免规则覆盖，并在 CLAUDE.md 与 SKILL.md 中有文字说明。"
+      ],
+      "evidence": [
+        "2026-09-13 决策：同步检查设白名单——仅豁免「personas 侧独有、且位于 assets/ 下的媒体文件」；语义文件必须一致；媒体若只存在于 output 侧或两侧同名媒体内容不同，仍照常报出。",
+        "2026-09-13 执行：trace/output/夏以昼 的 profile.json 与 assets/source.txt、trace/output/叶修 的 profile.json，已对齐为 personas 侧内容（personas 侧为超集，无信息丢失）。",
+        "2026-09-13 发现（改变了判定方式）：本机 core.autocrlf=true 且仓库无 .gitattributes，工作区文本文件行尾被 git 转换，Lucy 的 prompt/story_baseline.txt 曾因 CRLF/LF 差异被误报为「内容不同」。verify.py 的 sha256 已改为对文本文件先做 CRLF→LF 归一化，二进制仍按原字节。",
+        "2026-09-13: python harness/verify.py → 「已比对角色两边一致（豁免 personas 侧独有媒体资源 38 个）」，同步检查无 WARN。豁免项为 夏以昼 37 个 gif 帧 + 1 张头像、叶修 1 张参考图。"
+      ],
+      "notes": "同步方向定为 output := personas（personas 侧内容更完整），与 forge.py install_pod() 的 output→personas 方向不冲突：本次属 CLAUDE.md 允许的「手动对齐」。（38 个豁免项的实际计数为 39 个路径中的 38 个媒体文件 + 已对齐的语义文件。）"
+    },
+    {
+      "id": "schema-001",
+      "priority": 5,
+      "area": "schema",
+      "title": "统一 assets 目录与字段口径",
+      "user_visible_behavior": "文档、forge.py 的同步逻辑、imggen.py 的参考图解析、以及角色包内的实际目录命名之间不再有会破坏功能的冲突。",
+      "status": "passing",
+      "verification": [
+        "对存在参考图的角色调用 imggen.resolve_reference_image()，必须返回实际路径（而非 None）。",
+        "python inhabit/scripts/imggen.py prompt <角色> <自拍场景>，外观描述正常拼入提示词。",
+        "grep 全仓库：文档中对 assets 命名的描述已明确声明「images 与 image 双命名均被接受」，不存在会误导使用者的单一口径表述。"
+      ],
+      "evidence": [
+        "2026-09-13 决策：改代码迁就数据——不迁移现有数据，让 imggen.resolve_reference_image() 同时接受 assets/images/ 与 assets/image/。",
+        "2026-09-13 执行：inhabit/scripts/imggen.py 的参考图解析改为依次尝试 assets/images 与 assets/image；docstring 说明双命名来源。",
+        "2026-09-13 实测（修复后）：叶修 → personas/叶修/assets/image/叶修.jpg；夏以昼 → personas/夏以昼/assets/image/夏以昼头像.jpeg；Lucy、秦彻 无参考图，返回 None（符合预期）。修复前因只查 assets/images，叶修与夏以昼的参考图均取不到。",
+        "2026-09-13 实测：python inhabit/scripts/imggen.py prompt 叶修 \"在房间里举着手机自拍\" → include_appearance: True，外观描述（发型/面容/穿着/体型）正常拼接。",
+        "2026-09-13 执行：CLAUDE.md、trace/SKILL.md、trace/README.md、inhabit/SKILL.md、inhabit/README.md 均已声明 gender 顶层权威 + appearance.gender 冗余、以及参考图目录双命名兼容。"
+      ],
+      "notes": "原验收标准「两套命名不再混用」已按用户决策改写为「双命名均被显式支持并文档化」。这是口径变更而非放宽规则，已在 claude-progress.md Session 002 记录。"
+    },
+    {
+      "id": "hygiene-001",
+      "priority": 6,
+      "area": "hygiene",
+      "title": "收敛仓库忽略规则",
+      "user_visible_behavior": "本地 agent 状态与本地生成的动态资源不再出现在待提交清单中，维护者看到的未跟踪项只剩真正待决策的内容。",
+      "status": "passing",
+      "verification": [
+        "python harness/verify.py，Git/未跟踪 中不再出现 .workbuddy/ 与 personas/*/assets/gif/。",
+        "被忽略的内容在 .gitignore 中有注释说明，且移除注释即可恢复跟踪。"
+      ],
+      "evidence": [
+        "2026-09-13 决策：.workbuddy/（agent 会话状态）加入根 .gitignore；inhabit/personas/夏以昼/assets/gif/（4.8MB、38 帧）暂不纳入版本管理。",
+        "2026-09-13 执行：根 .gitignore 新增 .workbuddy/；inhabit/.gitignore 新增 personas/*/assets/gif/，两处均附注释与恢复方式。",
+        "2026-09-13 佐证 gif 暂不纳入的合理性：grep 全仓库（排除 .bin 与 harness 自带文档）显示无任何代码引用 assets/gif/，即当前运行时功能不依赖该资源。",
+        "2026-09-13: python harness/verify.py → Git/未跟踪 仅剩 harness/ 与 trace/output/Lucy/ 下待提交内容，WARN 由 6 项降为 1 项。"
+      ],
+      "notes": "该决策可逆：删除 .gitignore 中对应两行即可恢复跟踪。若后续将 GIF 作为发布所需动画资源，应移除忽略规则并提交。"
+    },
+    {
+      "id": "runtime-001",
+      "priority": 7,
+      "area": "runtime",
+      "title": "解耦平台相关的消息与定时机制",
+      "user_visible_behavior": "伴侣模式的主动消息与定时任务可在当前运行环境（WorkBuddy）下工作，不依赖 openclaw 或特定 IM 标签。",
+      "status": "not_started",
+      "verification": [
+        "确认 sender.py 的输出格式在本环境可被消费，或以参数化方式支持多平台。",
+        "确认 cleanup.py 的 cron 清理逻辑对应当前环境的自动化机制。"
+      ],
+      "evidence": [],
+      "notes": "未在 Session 002 的决策范围内，保持未开始。sender.py 输出 <qqmedia> 标签；cleanup.py 依赖 openclaw cron CLI 管理 mi-companion-proactive 任务。当前环境为 WorkBuddy，定时任务应改用其 automation 机制。需用户确认目标平台后再动手。"
+    },
+    {
+      "id": "quality-001",
+      "priority": 8,
+      "area": "quality",
+      "title": "校准人格自动推断与人工设定",
+      "user_visible_behavior": "forge.py 自动生成的 profile.json 人格评分与关键词，与人工精修的 system_prompts.txt 描述不冲突。",
+      "status": "not_started",
+      "verification": [
+        "对任一内置角色重跑 forge.py create，比较生成结果与现有 system_prompts.txt 的设定一致性。",
+        "确认 calc_score 的关键词表覆盖该角色的核心特征词。"
+      ],
+      "evidence": [],
+      "notes": "未在 Session 002 的决策范围内，保持未开始。夏以昼 profile.json 打分为开放性/外向性/宜人性/神经质均为 0.8，关键词为「思想开放/热情开朗/温和善良/敏感多思」，与人工设定「偏执腹黑、冷峻」相反。Session 002 只补字段与对齐内容，未触碰评分与关键词。"
+    }
+  ]
+}

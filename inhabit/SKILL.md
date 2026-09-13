@@ -145,7 +145,7 @@ SoulPod 包含以下文件：
 | `memories/raw_memories.json` | 记忆片段 |
 | `prompt/universal_prompt.txt` | 通用Prompt（供普通LLM直接使用） |
 | `prompt/story_baseline.txt` | 故事基线：当前主线、关系位、对话倾向（对话与后续功能的主轴） |
-| `assets/images/` | 角色参考图（用于文生图基准图） |
+| `assets/images/` | 角色参考图（用于文生图基准图）。**兼容早期命名 `assets/image/`**，两者都会被读取 |
 | `assets/audio/` | 角色音频（用于声音复刻） |
 
 ### profile.json 必需字段
@@ -157,6 +157,7 @@ SoulPod 包含以下文件：
   "source": "作品名",
   "gender": "male | female",
   "appearance": {
+    "gender": "male | female",
     "hair": "发型发色",
     "face": "五官特征",
     "body": "体型",
@@ -169,8 +170,9 @@ SoulPod 包含以下文件：
 |------|------|
 | `source_type` | `"virtual"`=虚拟角色（动漫/游戏），`"real"`=现实人物 |
 | `source` | 角色来自的作品名 |
-| `gender` | 角色性别，`"male"` 或 `"female"`，由 Memory-Trace 从素材自动推断，用于 TTS 音色匹配 |
+| `gender` | 角色性别，`"male"` 或 `"female"`，**权威字段放顶层**（`tts.py` / `imggen.py` 读取顶层）；`appearance.gender` 为冗余副本，必须与顶层一致 |
 | `appearance` | 用于文生图/图生图时的角色外观描述 |
+| 参考图目录 | 同时接受 `assets/images/`（文档与 `forge.py` 约定）与 `assets/image/`（早期落盘数据） |
 
 ## 文生图功能
 

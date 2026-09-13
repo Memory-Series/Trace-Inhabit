@@ -13,3 +13,7 @@ build/
 .mi_stats.json
 personas/*/memories/diary/
 personas/*/memories/history/
+
+# 本地生成的动态资源（GIF 帧序列），当前无代码引用，暂不纳入版本管理。
+# 如需随示例包一起分发，删除下列两行即可。
+personas/*/assets/gif/

@@ -33,6 +33,15 @@ assets/
   └── source.txt
 ```
 
+**字段口径（`harness/verify.py` 会校验）：**
+
+- `profile.json` 的 `gender` 为**顶层权威字段**（`tts.py` / `imggen.py` 读顶层）；
+  `appearance.gender` 是冗余副本，必须与顶层一致。
+- 参考图目录同时接受 `assets/images/`（文档与 `forge.py` 约定）与 `assets/image/`（早期落盘数据）。
+- `trace/output/<角色>/` 与 `inhabit/personas/<角色>/` 的**语义文件**（`profile.json`、
+  `config.json`、`system_prompts.txt`、`memories/`、`prompt/`、`assets/source.txt`）
+  必须内容一致；**仅 `assets/` 下的媒体文件**允许只存在于 personas 侧。
+
 ## 路径约定（仅以 Monorepo 为准）
 
 | 类型 | 路径 |
@@ -84,3 +93,33 @@ assets/
 - 任何 `.env` 或含 API Key、Token 等敏感信息的文件
 - `trace/origin/**/assets/images/`、`trace/origin/**/assets/audio/`、`_merged_source.md`（见 `trace/.gitignore`）
 - `inhabit/personas/*/memories/diary/`、`inhabit/personas/*/memories/history/`（私密日记与对话流水，见 `inhabit/.gitignore`）
+- `inhabit/personas/*/assets/gif/`（本地生成的 GIF 帧序列，当前无代码引用，见 `inhabit/.gitignore`）
+- `.workbuddy/`（WorkBuddy agent 会话状态目录，非项目产物，见根 `.gitignore`）
+
+## 行尾约定（Windows）
+
+本机 git 配置为 `core.autocrlf=true`，且仓库无 `.gitattributes`：提交时 CRLF 归一化为 LF，
+检出到工作区时又还原为 CRLF。因此**工作区文件的行尾不具可比性**。
+`harness/verify.py` 的内容比对已对文本文件做 CRLF→LF 归一化，避免假差异。
+
+## Harness（开发流程约束）
+
+本仓库的长时运行 agent 工作流约束位于 `harness/`，与本文件的领域约定互补：
+
+| 文件 | 作用 |
+|------|------|
+| `harness/AGENTS.md` | 开工流程、工作规则、完成定义、收尾、Git 硬性约束 |
+| `harness/feature_list.json` | 功能状态的唯一事实来源 |
+| `harness/claude-progress.md` | 会话进度与当前已验证状态 |
+| `harness/init.sh` | 统一启动与验证入口 |
+| `harness/verify.py` | 验证规则的唯一实现处 |
+| `harness/session-handoff.md` | 较长会话的交接摘要 |
+
+**标准验证命令：** `python harness/verify.py`（全量）/ `--quick`（结构+语法）。
+
+**改动约束：** 修改 SoulPod 结构、路径约定或禁提交项时，必须同步更新本文件与
+`harness/verify.py` 中对应的检查；不得为让验证变绿而放宽 `verify.py` 的规则。
+
+**Git 约束：** `git commit` 与 `git push` 必须由维护者明确指示后才可执行，详见
+`harness/AGENTS.md`。
+

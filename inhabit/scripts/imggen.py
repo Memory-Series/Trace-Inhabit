@@ -72,6 +72,10 @@ def resolve_reference_image(persona_name):
     优先级：
     1) profile.json["assets"]["images"][0]
     2) personas/<name>/assets/images 下第一张图片
+       兼容历史命名 personas/<name>/assets/image（见 trace/output/叶修/assets/image/）
+
+    注意：目录命名存在两套（`images` 为文档/forge 约定，`image` 为早期落盘数据），
+    这里同时接受，避免因数据搬迁导致参考图取不到。
     """
     persona_dir = resolve_persona_dir(persona_name)
     if not persona_dir:
@@ -90,14 +94,15 @@ def resolve_reference_image(persona_name):
             if candidate.exists():
                 return str(candidate)
 
-    images_dir = persona_dir / "assets" / "images"
-    if not images_dir.exists():
-        return None
-
     exts = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
-    candidates = sorted([p for p in images_dir.iterdir() if p.is_file() and p.suffix.lower() in exts])
-    if candidates:
-        return str(candidates[0])
+    for dirname in ("images", "image"):
+        images_dir = persona_dir / "assets" / dirname
+        if not images_dir.is_dir():
+            continue
+        candidates = sorted([p for p in images_dir.iterdir()
+                             if p.is_file() and p.suffix.lower() in exts])
+        if candidates:
+            return str(candidates[0])
 
     return None
 

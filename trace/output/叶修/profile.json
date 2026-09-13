@@ -1,6 +1,9 @@
 {
   "name": "叶修",
   "alias": ["叶秋", "叶神", "斗神", "荣耀教科书"],
+  "source_type": "virtual",
+  "source": "全职高手",
+  "gender": "male",
   "birth_year": null,
   "birth_date": "5月29日",
   "death_year": null,
@@ -31,6 +34,7 @@
     "devices": ["君莫笑（散人账号）", "一叶之秋（战斗法师账号，已转让）", "千机伞（银武）"]
   },
   "appearance": {
+    "gender": "male",
     "hair": "黑色短发，凌乱不打理",
     "face": "面容清秀，看起来比实际年龄年轻",
     "body": "中等偏瘦，178cm",
