@@ -1,0 +1,19 @@
+{
+  "soulpod_version": "0.1.0",
+  "created_at": "2026-10-14",
+  "model_preference": {
+    "provider": "openrouter",
+    "model": "auto",
+    "temperature": 0.7,
+    "max_tokens": 512
+  },
+  "conversation": {
+    "max_history": 20,
+    "save_transcript": true,
+    "transcript_dir": "conversations/"
+  },
+  "tts_provider": "minimax",
+  "minimax_voice_id": "Chinese (Mandarin)_Gentleman",
+  "voice_description": "温润男声｜磁性柔和，适合温柔体贴型角色",
+  "edge_voice": "zh-CN-YunxiNeural"
+}
